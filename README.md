@@ -10,7 +10,10 @@ Godot:
 https://github.com/godotengine/godot
 
 ## Setup:
-- open a terminal inside the godot source folder and run the following commands:
+- open a terminal inside the godot source folder and run the following commands:  
 `cd modules`  
 `git clone https://github.com/sebastian-heinz/portaudio.git`  
 `git submodule update --init --recursive`  
+
+or  
+Download the zip and extract it into the godot/modules-folder

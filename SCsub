@@ -3,16 +3,91 @@
 Import('env')
 module_env = env.Clone()
 
+# Portaudio sources
+pa_sources = [
+# Common
+"./portaudio/src/common/pa_allocation.c",
+"./portaudio/src/common/pa_converters.c",
+"./portaudio/src/common/pa_cpuload.c",
+"./portaudio/src/common/pa_debugprint.c",
+"./portaudio/src/common/pa_dither.c",
+"./portaudio/src/common/pa_front.c",
+"./portaudio/src/common/pa_process.c",
+"./portaudio/src/common/pa_ringbuffer.c",
+"./portaudio/src/common/pa_stream.c",
+"./portaudio/src/common/pa_trace.c",
 
+# OS
+#"./portaudio/src/os/unix/pa_unix_hostapis.c",
+#"./portaudio/src/os/unix/pa_unix_util.c",
+
+"./portaudio/src/os/win/pa_win_coinitialize.c",
+"./portaudio/src/os/win/pa_win_hostapis.c",
+"./portaudio/src/os/win/pa_win_util.c",
+"./portaudio/src/os/win/pa_win_waveformat.c",
+"./portaudio/src/os/win/pa_win_wdmks_utils.c",
+"./portaudio/src/os/win/pa_x86_plain_converters.c",
+
+# Host API
+#"./portaudio/src/hostapi/alsa/pa_linux_alsa.c",
+
+#"./portaudio/src/hostapi/asihpi/pa_linux_asihpi.c",
+
+#"./portaudio/src/hostapi/asio/iasiothiscallresolver.cpp",
+#"./portaudio/src/hostapi/asio/pa_asio.cpp",
+
+#"./portaudio/src/hostapi/coreaudio/pa_mac_core.c",
+#"./portaudio/src/hostapi/coreaudio/pa_mac_core_blocking.c",
+#"./portaudio/src/hostapi/coreaudio/pa_mac_core_old.c",
+#"./portaudio/src/hostapi/coreaudio/pa_mac_core_utilities.c",
+
+"./portaudio/src/hostapi/dsound/pa_win_ds.c",
+"./portaudio/src/hostapi/dsound/pa_win_ds_dynlink.c",
+
+#"./portaudio/src/hostapi/jack/pa_jack.c",
+
+#"./portaudio/src/hostapi/oss/pa_unix_oss.c",
+#"./portaudio/src/hostapi/oss/recplay.c",
+
+"./portaudio/src/hostapi/skeleton/pa_hostapi_skeleton.c",
+
+
+"./portaudio/src/hostapi/wasapi/pa_win_wasapi.c",
+
+"./portaudio/src/hostapi/wdmks/pa_win_wdmks.c",
+
+"./portaudio/src/hostapi/wmme/pa_win_wmme.c",
+]
+module_env.add_source_files(env.modules_sources, pa_sources)
+
+# Common
+module_env.Append(CPPPATH=["portaudio/include"])
+
+# Include
+module_env.Append(CPPPATH=["portaudio/src/common"])
+
+# OS
+module_env.Append(CPPPATH=["portaudio/src/os/win"])
+#module_env.Append(CPPPATH=["portaudio/src/os/unix"])
+
+# Host API
+#module_env.Append(CPPPATH=["portaudio/src/hostapi/alsa"])
+#module_env.Append(CPPPATH=["portaudio/src/hostapi/asihpi"])
+#module_env.Append(CPPPATH=["portaudio/src/hostapi/asio"])
+#module_env.Append(CPPPATH=["portaudio/src/hostapi/coreaudio"])
+module_env.Append(CPPPATH=["portaudio/src/hostapi/dsound"])
+#module_env.Append(CPPPATH=["portaudio/src/hostapi/jack"])
+#module_env.Append(CPPPATH=["portaudio/src/hostapi/oss"])
+module_env.Append(CPPPATH=["portaudio/src/hostapi/skeleton"])
+module_env.Append(CPPPATH=["portaudio/src/hostapi/wasapi"])
+module_env.Append(CPPPATH=["portaudio/src/hostapi/wdmks"])
+module_env.Append(CPPPATH=["portaudio/src/hostapi/wmme"])
 
 # Godot sources
 sources = [
 "register_types.cpp",
 
-"port_audio_server.cpp",
+"port_audio.cpp",
+"port_audio_node.cpp",
 ]
-
-# Static compilation
 module_env.add_source_files(env.modules_sources, sources)
-module_env.add_source_files(env.modules_sources, "portaudio/*.c")
-
