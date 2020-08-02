@@ -6,7 +6,7 @@ module for godot
 ### via submodule
 - open a terminal inside the godot source folder and run the following commands:  
 `cd modules`  
-`git clone https://github.com/sebastian-heinz/portaudio.git`  
+`git submodule add https://github.com/sebastian-heinz/portaudio.git`
 `git submodule update --init --recursive`  
 
 ### via download 
