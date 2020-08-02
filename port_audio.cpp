@@ -1,52 +1,48 @@
 #include "port_audio.h"
 
+#include "port_audio_node.h"
+
 PortAudio *PortAudio::singleton = NULL;
 
 PortAudio *PortAudio::get_singleton() {
 	return singleton;
 }
 
-int PortAudio::port_audio_callback(const void *p_input_buffer, void *p_output_buffer,
+int PortAudio::port_audio_callback_converter(const void *p_input_buffer, void *p_output_buffer,
 		unsigned long p_frames_per_buffer, const PaStreamCallbackTimeInfo *p_time_info,
 		PaStreamCallbackFlags p_status_flags, void *p_user_data) {
-	PortAudio *port_audio = (PortAudio *)p_user_data;
-	if (!port_audio) {
-		print_line("PortAudio::port_audio_callback: !port_audio");
-		return 0;
-	}
-	return 0;
-}
 
-int PortAudio::port_audio_node_callback(const void *p_input_buffer, void *p_output_buffer,
-		unsigned long p_frames_per_buffer, const PaStreamCallbackTimeInfo *p_time_info,
-		PaStreamCallbackFlags p_status_flags, void *p_user_data) {
-	PortAudioNode *node = (PortAudioNode *)p_user_data;
-	if (!node) {
-		print_line("PortAudio::port_audio_node_callback: !node");
+	PaCallbackUserData *user_data = (PaCallbackUserData *)p_user_data;
+	if (!user_data) {
+		print_line("PortAudio::port_audio_callback_converter: !user_data");
 		return 0;
 	}
-	// copy input buffer to godot type (might need to find a faster way)
+	// copy input buffer to godot type (TODO might need to find a faster way)
 	PoolVector<float> pool_vector_in;
-	Error err = pool_vector_in.resize(p_frames_per_buffer);
-	if (err != OK) {
-		print_line(vformat("PortAudio::port_audio_node_callback: can not resize pool_vector_in to: %d", (unsigned int)p_frames_per_buffer));
-		return 0;
+	if (p_input_buffer) {
+		Error err = pool_vector_in.resize(p_frames_per_buffer);
+		if (err != OK) {
+			print_line(vformat("PortAudio::port_audio_node_callback: can not resize pool_vector_in to: %d", (unsigned int)p_frames_per_buffer));
+			return 0;
+		}
+		float *in = (float *)p_input_buffer;
+		PoolVector<float>::Write write_in = pool_vector_in.write();
+		for (unsigned int i = 0; i < p_frames_per_buffer; i++) {
+			write_in[i] = in[i];
+		}
+		write_in.release();
 	}
-	float *in = (float *)p_input_buffer;
-	PoolVector<float>::Write write_in = pool_vector_in.write();
-	for (unsigned int i = 0; i < p_frames_per_buffer; i++) {
-		write_in[i] = in[i];
-	}
-	write_in.release();
-	PoolVector<float> pool_vector_out;
 	// provide time info
 	Dictionary time_info;
 	time_info["input_buffer_adc_time"] = p_time_info->inputBufferAdcTime;
 	time_info["current_time"] = p_time_info->currentTime;
 	time_info["output_buffer_dac_time"] = p_time_info->outputBufferDacTime;
 	// perform callback
-	node->audio_callback(pool_vector_in, pool_vector_out, p_frames_per_buffer, time_info, p_status_flags);
-	// copy result into buffer (might need to find a faster way)
+	PoolVector<float> pool_vector_out;
+	AudioCallback *audio_callback = (AudioCallback *)user_data->audio_callback;
+	audio_callback(pool_vector_in, pool_vector_out, p_frames_per_buffer,
+			time_info, p_status_flags, user_data->audio_callback_user_data);
+	// copy result into buffer (TODO might need to find a faster way)
 	float *out = (float *)p_output_buffer;
 	unsigned int size_out = pool_vector_out.size();
 	PoolVector<float>::Read read_out = pool_vector_out.read();
@@ -122,17 +118,166 @@ PortAudio::PortAudioError PortAudio::terminate() {
 	return get_error(err);
 }
 
-PortAudio::PortAudioError PortAudio::register_node(PortAudioNode *p_port_audio_node) {
-	PaStream *stream;
-	PaError err = Pa_OpenDefaultStream(&stream,
-			p_port_audio_node->get_input_channel_count(),
-			p_port_audio_node->get_output_channel_count(),
+PortAudio::PortAudioError PortAudio::open_default_stream(void **p_stream, int p_input_channel_count,
+		int p_output_channel_count, double p_sample_rate, unsigned long p_frames_per_buffer,
+		AudioCallback *p_audio_callback, void *p_user_data) {
+	// TODO delete(p_audio_callback) - maybe add to list & add finished flag and clean up periodically
+	PaCallbackUserData *user_data = new PaCallbackUserData();
+	user_data->port_audio = this;
+	user_data->audio_callback = p_audio_callback;
+	user_data->audio_callback_user_data = p_user_data;
+	PaError err = Pa_OpenDefaultStream(p_stream,
+			p_input_channel_count,
+			p_output_channel_count,
 			paFloat32,
-			p_port_audio_node->get_sample_rate(),
-			p_port_audio_node->get_frames_per_buffer(),
-			&PortAudio::port_audio_node_callback,
-			p_port_audio_node);
+			p_sample_rate,
+			p_frames_per_buffer,
+			&PortAudio::port_audio_callback_converter,
+			user_data);
 	return get_error(err);
+}
+
+/**
+Commences audio processing.
+*/
+PortAudio::PortAudioError PortAudio::start_stream(void *p_stream) {
+	PaError err = Pa_StartStream(p_stream);
+	return get_error(err);
+}
+
+/**
+Terminates audio processing. It waits until all pending
+ audio buffers have been played before it returns.
+*/
+PortAudio::PortAudioError PortAudio::stop_stream(void *p_stream) {
+	PaError err = Pa_StopStream(p_stream);
+	return get_error(err);
+}
+
+/** Closes an audio stream. If the audio stream is active it
+ discards any pending buffers as if Pa_AbortStream() had been called.
+*/
+PortAudio::PortAudioError PortAudio::close_stream(void *p_stream) {
+	PaError err = Pa_CloseStream(p_stream);
+	return get_error(err);
+}
+
+/** Determine whether the stream is stopped.
+ A stream is considered to be stopped prior to a successful call to
+ Pa_StartStream and after a successful call to Pa_StopStream or Pa_AbortStream.
+ If a stream callback returns a value other than paContinue the stream is NOT
+ considered to be stopped.
+
+ @return Returns one (1) when the stream is stopped, zero (0) when
+ the stream is running or, a PaErrorCode (which are always negative) if
+ PortAudio is not initialized or an error is encountered.
+
+ @see Pa_StopStream, Pa_AbortStream, Pa_IsStreamActive
+*/
+PortAudio::PortAudioError PortAudio::is_stream_stopped(void *p_stream) {
+	PaError err = Pa_IsStreamStopped(p_stream);
+	return get_error(err);
+}
+
+/** Determine whether the stream is active.
+ A stream is active after a successful call to Pa_StartStream(), until it
+ becomes inactive either as a result of a call to Pa_StopStream() or
+ Pa_AbortStream(), or as a result of a return value other than paContinue from
+ the stream callback. In the latter case, the stream is considered inactive
+ after the last buffer has finished playing.
+
+ @return Returns one (1) when the stream is active (ie playing or recording
+ audio), zero (0) when not playing or, a PaErrorCode (which are always negative)
+ if PortAudio is not initialized or an error is encountered.
+
+ @see Pa_StopStream, Pa_AbortStream, Pa_IsStreamStopped
+*/
+PortAudio::PortAudioError PortAudio::is_stream_active(void *p_stream) {
+	PaError err = Pa_IsStreamActive(p_stream);
+	return get_error(err);
+}
+
+/** Returns the current time in seconds for a stream according to the same clock used
+ to generate callback PaStreamCallbackTimeInfo timestamps. The time values are
+ monotonically increasing and have unspecified origin. 
+ 
+ Pa_GetStreamTime returns valid time values for the entire life of the stream,
+ from when the stream is opened until it is closed. Starting and stopping the stream
+ does not affect the passage of time returned by Pa_GetStreamTime.
+
+ This time may be used for synchronizing other events to the audio stream, for 
+ example synchronizing audio to MIDI.
+                                        
+ @return The stream's current time in seconds, or 0 if an error occurred.
+
+ @see PaTime, PaStreamCallback, PaStreamCallbackTimeInfo
+*/
+double PortAudio::get_stream_time(void *p_stream) {
+	PaTime time = Pa_GetStreamTime(p_stream);
+	return time;
+}
+
+/** Retrieve a pointer to a PaStreamInfo structure containing information
+ about the specified stream.
+ @return A pointer to an immutable PaStreamInfo structure. If the stream
+ parameter is invalid, or an error is encountered, the function returns NULL.
+
+ @param stream A pointer to an open stream previously created with Pa_OpenStream.
+
+ @note PortAudio manages the memory referenced by the returned pointer,
+ the client must not manipulate or free the memory. The pointer is only
+ guaranteed to be valid until the specified stream is closed.
+
+ @see PaStreamInfo
+*/
+Dictionary PortAudio::get_stream_info(void *p_stream) {
+	const PaStreamInfo *pa_stream_info = Pa_GetStreamInfo(p_stream);
+
+	Dictionary stream_info;
+	/** this is struct version 1 */
+	stream_info["struct_version"] = pa_stream_info->structVersion;
+
+	/** The input latency of the stream in seconds. This value provides the most
+     accurate estimate of input latency available to the implementation. It may
+     differ significantly from the suggestedLatency value passed to Pa_OpenStream().
+     The value of this field will be zero (0.) for output-only streams.
+     @see PaTime
+    */
+	stream_info["input_latency"] = pa_stream_info->inputLatency;
+
+	/** The output latency of the stream in seconds. This value provides the most
+     accurate estimate of output latency available to the implementation. It may
+     differ significantly from the suggestedLatency value passed to Pa_OpenStream().
+     The value of this field will be zero (0.) for input-only streams.
+     @see PaTime
+    */
+	stream_info["output_latency"] = pa_stream_info->outputLatency;
+
+	/** The sample rate of the stream in Hertz (samples per second). In cases
+     where the hardware sample rate is inaccurate and PortAudio is aware of it,
+     the value of this field may be different from the sampleRate parameter
+     passed to Pa_OpenStream(). If information about the actual hardware sample
+     rate is not available, this field will have the same value as the sampleRate
+     parameter passed to Pa_OpenStream().
+    */
+	stream_info["sample_rate"] = pa_stream_info->sampleRate;
+
+	return stream_info;
+}
+
+double PortAudio::get_stream_cpu_load(void *p_stream) {
+	return Pa_GetStreamCpuLoad(p_stream);
+}
+
+/** Put the caller to sleep for at least 'msec' milliseconds. This function is
+ provided only as a convenience for authors of portable code (such as the tests
+ and examples in the PortAudio distribution.)
+
+ The function may sleep longer than requested so don't rely on this for accurate
+ musical timing.
+*/
+void PortAudio::sleep(unsigned int p_ms) {
+	Pa_Sleep(p_ms);
 }
 
 PortAudio::PortAudioError PortAudio::get_error(PaError p_error) {
@@ -198,6 +343,7 @@ PortAudio::PortAudioError PortAudio::get_error(PaError p_error) {
 		case paBadBufferPtr:
 			return PortAudio::PortAudioError::BAD_BUFFER_PTR;
 	}
+	print_error(vformat("PortAudio::get_error: UNDEFINED error code: %d", p_error));
 	return PortAudio::PortAudioError::UNDEFINED;
 }
 
@@ -206,9 +352,11 @@ void PortAudio::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("version_text"), &PortAudio::version_text);
 	ClassDB::bind_method(D_METHOD("initialize"), &PortAudio::initialize);
 	ClassDB::bind_method(D_METHOD("terminate"), &PortAudio::terminate);
-	ClassDB::bind_method(D_METHOD("register_node", "port_audio_node"), &PortAudio::register_node);
+	ClassDB::bind_method(D_METHOD("sleep", "ms"), &PortAudio::sleep);
 
 	BIND_ENUM_CONSTANT(UNDEFINED);
+	BIND_ENUM_CONSTANT(NOT_PORT_AUDIO_NODE);
+
 	BIND_ENUM_CONSTANT(NO_ERROR);
 	BIND_ENUM_CONSTANT(NOT_INITIALIZED);
 	BIND_ENUM_CONSTANT(UNANTICIPATED_HOST_ERROR);
@@ -242,7 +390,22 @@ void PortAudio::_bind_methods() {
 }
 
 PortAudio::PortAudio() {
+	singleton = this;
+	PortAudio::PortAudioError err = initialize();
+	if (err != PortAudio::PortAudioError::NO_ERROR) {
+		print_error(vformat("PortAudio::PortAudio: failed to initialize (%d)", err));
+	}
 }
 
 PortAudio::~PortAudio() {
+	PortAudio::PortAudioError err = terminate();
+	if (err != PortAudio::PortAudioError::NO_ERROR) {
+		print_error(vformat("PortAudio::PortAudio: failed to terminate (%d)", err));
+	}
+}
+
+PortAudio::PaCallbackUserData::PaCallbackUserData() {
+	port_audio = NULL;
+	audio_callback = NULL;
+	audio_callback_user_data = NULL;
 }

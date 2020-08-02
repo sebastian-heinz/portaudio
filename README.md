@@ -17,3 +17,12 @@ https://github.com/godotengine/godot
 
 or  
 Download the zip and extract it into the godot/modules-folder
+
+
+## Asio
+For building requires ASIO SDK 2.0 or higher:  
+https://www.steinberg.net/en/company/developers.html  
+
+
+Asio4All Driver:  
+http://www.asio4all.org/
