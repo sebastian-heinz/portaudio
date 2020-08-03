@@ -31,8 +31,8 @@ When building godot it will check if the host api is supported for the platform 
 | COREAUDIO | Not Available | Not Available | Not Tested    |
 | OSS       | Not Available | Not Tested    | Not Available |
 
-*1) if used godots wasapi driver will be disabled
-*2) requires that the enduser has asio drivers installed (ex. ASIO4ALL)
+*1) if used godots wasapi driver will be disabled  
+*2) requires that the enduser has asio drivers installed (ex. ASIO4ALL)  
 
 ## Godot
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
