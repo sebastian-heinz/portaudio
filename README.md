@@ -10,9 +10,9 @@ module for godot
 `git submodule update --init --recursive`  
 
 ### via download 
-Download the zip (https://github.com/sebastian-heinz/portaudio/archive/master.zip) and extract it into the godot/modules-folder.
-Since it is missing the portaudio source, it has to be manually added. Get it from http://www.portaudio.com/archives/pa_stable_v190600_20161030.tgz and paste it into the empty portaudio folder. (./portaudio/portaudio/).  
-<img src="/doc/port_audio_example.png" width="400">
+- Download the zip (https://github.com/sebastian-heinz/portaudio/archive/master.zip) and extract it into the godot/modules-folder.
+  Since it is missing the portaudio source, it has to be manually added. Get it from http://www.portaudio.com/archives/pa_stable_v190600_20161030.tgz and paste it into the empty   portaudio folder. (./portaudio/portaudio/).  
+  <img src="/doc/port_audio_example.png" width="400">
 
 ## Building
 edit the [SCsub](./SCsub) file and comment / uncomment the desired host apis `use_host_api = [`.
