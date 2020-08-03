@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+import os
+import sys
+
+Import('env')
+module_env = env.Clone()
+
 # only APIs that are not uncommented will be build
 use_host_api = [
 # "skeleton",  # Test Host Api for developers
@@ -14,14 +20,6 @@ use_host_api = [
 # "coreaudio", #
 # "oss",       #
 ]
-
-
-# System
-import os
-import sys
-
-Import('env')
-module_env = env.Clone()
 
 # Portaudio sources
 available_host_apis = []
@@ -120,7 +118,7 @@ for host_api in available_host_apis:
     module_env.Append(CPPPATH=["portaudio/src/hostapi/jack"])
     host_api_sources.append("./portaudio/src/hostapi/jack/pa_jack.c")
   if(host_api == "wasapi"): 
-    #disable Godot WASAPI driver
+    # disable Godot WASAPI driver
     env['CPPDEFINES'] = [ x for x in env['CPPDEFINES'] if 'WASAPI_ENABLED' not in x]
     module_env.Append(CPPDEFINES=["PA_USE_WASAPI"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/wasapi"])
@@ -168,5 +166,6 @@ sources = [
 
 "port_audio.cpp",
 "port_audio_node.cpp",
+"port_audio_test_node.cpp",
 ]
 module_env.add_source_files(env.modules_sources, sources)

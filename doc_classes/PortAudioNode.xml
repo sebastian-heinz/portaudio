@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PortAudioNode" inherits="Node" version="3.2">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="close_stream">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="get_stream_info">
+			<return type="Dictionary">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="get_stream_time">
+			<return type="float">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="is_stream_active">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="is_stream_stopped">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="open_default_stream">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="start_stream">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="stop_stream">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="data" type="PoolByteArray" setter="set_data" getter="get_data" default="PoolByteArray(  )">
+		</member>
+		<member name="frames_per_buffer" type="int" setter="set_frames_per_buffer" getter="get_frames_per_buffer" default="0">
+		</member>
+		<member name="input_channel_count" type="int" setter="set_input_channel_count" getter="get_input_channel_count" default="0">
+		</member>
+		<member name="output_channel_count" type="int" setter="set_output_channel_count" getter="get_output_channel_count" default="2">
+		</member>
+		<member name="sample_rate" type="float" setter="set_sample_rate" getter="get_sample_rate" default="44100.0">
+		</member>
+	</members>
+	<signals>
+		<signal name="audio_callback">
+			<argument index="0" name="input_buffer" type="PoolRealArray">
+			</argument>
+			<argument index="1" name="output_buffer" type="PoolRealArray">
+			</argument>
+			<argument index="2" name="frames_per_buffer" type="int">
+			</argument>
+			<argument index="3" name="time_info" type="Dictionary">
+			</argument>
+			<argument index="4" name="status_flags" type="int">
+			</argument>
+			<description>
+			</description>
+		</signal>
+	</signals>
+	<constants>
+	</constants>
+</class>

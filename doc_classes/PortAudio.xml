@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PortAudio" inherits="Object" version="3.2">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="initialize">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="sleep">
+			<return type="void">
+			</return>
+			<argument index="0" name="ms" type="int">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="terminate">
+			<return type="int" enum="PortAudio.PortAudioError">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="version">
+			<return type="int">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="version_text">
+			<return type="String">
+			</return>
+			<description>
+			</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="UNDEFINED" value="-1" enum="PortAudioError">
+		</constant>
+		<constant name="NOT_PORT_AUDIO_NODE" value="-2" enum="PortAudioError">
+		</constant>
+		<constant name="NO_ERROR" value="0" enum="PortAudioError">
+		</constant>
+		<constant name="NOT_INITIALIZED" value="-10000" enum="PortAudioError">
+		</constant>
+		<constant name="UNANTICIPATED_HOST_ERROR" value="-9999" enum="PortAudioError">
+		</constant>
+		<constant name="INVALID_CHANNEL_COUNT" value="-9998" enum="PortAudioError">
+		</constant>
+		<constant name="INVALID_SAMPLE_RATE" value="-9997" enum="PortAudioError">
+		</constant>
+		<constant name="INVALID_DEVICE" value="-9996" enum="PortAudioError">
+		</constant>
+		<constant name="INVALID_FLAG" value="-9995" enum="PortAudioError">
+		</constant>
+		<constant name="SAMPLE_FORMAT_NOT_SUPPORTED" value="-9994" enum="PortAudioError">
+		</constant>
+		<constant name="BAD_IO_DEVICE_COMBINATION" value="-9993" enum="PortAudioError">
+		</constant>
+		<constant name="INSUFFICIENT_MEMORY" value="-9992" enum="PortAudioError">
+		</constant>
+		<constant name="BUFFER_TO_BIG" value="-9991" enum="PortAudioError">
+		</constant>
+		<constant name="BUFFER_TOO_SMALL" value="-9990" enum="PortAudioError">
+		</constant>
+		<constant name="NULL_CALLBACK" value="-9989" enum="PortAudioError">
+		</constant>
+		<constant name="BAD_STREAM_PTR" value="-9988" enum="PortAudioError">
+		</constant>
+		<constant name="TIMED_OUT" value="-9987" enum="PortAudioError">
+		</constant>
+		<constant name="INTERNAL_ERROR" value="-9986" enum="PortAudioError">
+		</constant>
+		<constant name="DEVICE_UNAVAILABLE" value="-9985" enum="PortAudioError">
+		</constant>
+		<constant name="INCOMPATIBLE_HOST_API_SPECIFIC_STREAM_INFO" value="-9984" enum="PortAudioError">
+		</constant>
+		<constant name="STREAM_IS_STOPPED" value="-9983" enum="PortAudioError">
+		</constant>
+		<constant name="STREAM_IS_NOT_STOPPED" value="-9982" enum="PortAudioError">
+		</constant>
+		<constant name="INPUT_OVERFLOWED" value="-9981" enum="PortAudioError">
+		</constant>
+		<constant name="OUTPUT_UNDERFLOWED" value="-9980" enum="PortAudioError">
+		</constant>
+		<constant name="HOST_API_NOT_FOUND" value="-9979" enum="PortAudioError">
+		</constant>
+		<constant name="INVALID_HOST_API" value="-9978" enum="PortAudioError">
+		</constant>
+		<constant name="CAN_NOT_READ_FROM_A_CALLBACK_STREAM" value="-9977" enum="PortAudioError">
+		</constant>
+		<constant name="CAN_NOT_WRITE_TO_A_CALLBACK_STREAM" value="-9976" enum="PortAudioError">
+		</constant>
+		<constant name="CAN_NOT_READ_FROM_AN_OUT_PUTONLY_STREAM" value="-9975" enum="PortAudioError">
+		</constant>
+		<constant name="CAN_NOT_WRITE_TO_AN_INPUT_ONLY_STREAM" value="-9974" enum="PortAudioError">
+		</constant>
+		<constant name="INCOMPATIBLE_STREAM_HOST_API" value="-9973" enum="PortAudioError">
+		</constant>
+		<constant name="BAD_BUFFER_PTR" value="-9972" enum="PortAudioError">
+		</constant>
+	</constants>
+</class>
