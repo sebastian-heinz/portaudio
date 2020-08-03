@@ -18,8 +18,21 @@ edit the [SCsub](./SCsub) file and comment / uncomment the desired host apis `us
 When building godot it will check if the host api is supported for the platform (windows, linux or osx) and available inside the `use_host_api`-array. Only then the host api will be available.
 
 ## Driver
-### WASAPI
-- if used godots wasapi driver will be disabled
+
+| Driver    | Windows       | x11           | osx 
+| --------- | ------------- | ------------- |  ------------ |
+| ASIO      | Working       | Not Tested    | Not Available |
+| DSOUND    | Working       | Not Available | Not Available |
+| WASAPI    | Working (*1)  | Not Available | Not Available |
+| WDM/KS    | Working       | Not Available | Not Available |
+| WMME      | Error         | Not Available | Not Available |
+| JACK      | Not Available | Not Tested    | Not Available |
+| ALSA      | Not Available | Not Tested    | Not Available |
+| ASIHPI    | Not Available | Not Tested    | Not Available |
+| COREAUDIO | Not Available | Not Available | Not Tested    |
+| OSS       | Not Available | Not Tested    | Not Available |
+
+*1) if used godots wasapi driver will be disabled
 
 ## About
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
