@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+# only APIs that are not uncommented will be build
+use_host_api = [
+# "skeleton",  # Test Host Api for developers
+  "asio",      # ASIO (Audio Streaming Input Output)
+  "dsound",    # Direct Sound
+# "jack",      #
+  "wasapi",    # (WASAPI) Windows Audio Session API 
+# "wdmks",     # (WDM/KS) Windows Driver Model/Kernel Streaming
+  "wmme",      #
+# "alsa",      #
+# "asihpi",    #
+# "coreaudio", #
+# "oss",       #
+]
+
+
 # System
 import os
 import sys
@@ -68,10 +84,15 @@ if module_env["platform"] == "osx":
 
 host_api_sources = []
 for host_api in available_host_apis:
+  if not host_api in use_host_api:
+    # skip undesired host apis
+    continue
+    
   if(host_api == "skeleton"):
     module_env.Append(CPPDEFINES=["PA_USE_SKELETON"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/skeleton"])
     host_api_sources.append("./portaudio/src/hostapi/skeleton/pa_hostapi_skeleton.c")
+    
   if(host_api == "asio"):
     if not os.path.exists("./asiosdk/common/asio.cpp") or not os.path.exists("./asiosdk/host/asiodrivers.cpp") or not os.path.exists("./asiosdk/host/pc/asiolist.cpp"):
       print("ASIO SDK missing")
@@ -87,35 +108,44 @@ for host_api in available_host_apis:
     host_api_sources.append("./asiosdk/common/asio.cpp")
     host_api_sources.append("./asiosdk/host/asiodrivers.cpp")
     host_api_sources.append("./asiosdk/host/pc/asiolist.cpp")
+    
   if(host_api == "dsound"):
-    #module_env.Append(CPPDEFINES=["PA_USE_DS"])
+    module_env.Append(CPPDEFINES=["PA_USE_DS"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/dsound"])
     host_api_sources.append("./portaudio/src/hostapi/dsound/pa_win_ds.c")
     host_api_sources.append("./portaudio/src/hostapi/dsound/pa_win_ds_dynlink.c")
+    
   if(host_api == "jack"):    
     module_env.Append(CPPDEFINES=["PA_USE_JACK"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/jack"])
     host_api_sources.append("./portaudio/src/hostapi/jack/pa_jack.c")
-  if(host_api == "wasapi"):
-    #module_env.Append(CPPDEFINES=["PA_USE_WASAPI"])
+  if(host_api == "wasapi"): 
+    #disable Godot WASAPI driver
+    env['CPPDEFINES'] = [ x for x in env['CPPDEFINES'] if 'WASAPI_ENABLED' not in x]
+    module_env.Append(CPPDEFINES=["PA_USE_WASAPI"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/wasapi"])
     host_api_sources.append("./portaudio/src/hostapi/wasapi/pa_win_wasapi.c")
-  if(host_api == "wdmks"):    
-    #module_env.Append(CPPDEFINES=["PA_USE_WDMKS"])
+    
+  if(host_api == "wdmks"):
+    module_env.Append(CPPDEFINES=["PA_USE_WDMKS"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/wdmks"])
     host_api_sources.append("./portaudio/src/hostapi/wdmks/pa_win_wdmks.c")
+    
   if(host_api == "wmme"):
-    #module_env.Append(CPPDEFINES=["PA_USE_WMME"])
+    module_env.Append(CPPDEFINES=["PA_USE_WMME"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/wmme"])
     host_api_sources.append("./portaudio/src/hostapi/wmme/pa_win_wmme.c")
+    
   if(host_api == "alsa"):
     module_env.Append(CPPDEFINES=["PA_USE_ALSA"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/alsa"])
     host_api_sources.append("./portaudio/src/hostapi/alsa/pa_linux_alsa.c")
+    
   if(host_api == "asihpi"):    
     module_env.Append(CPPDEFINES=["PA_USE_ASIHPI"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/asihpi"])
     host_api_sources.append("./portaudio/src/hostapi/asihpi/pa_linux_asihpi.c")
+    
   if(host_api == "coreaudio"):
     module_env.Append(CPPDEFINES=["PA_USE_COREAUDIO"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/coreaudio"])
@@ -123,6 +153,7 @@ for host_api in available_host_apis:
     host_api_sources.append("./portaudio/src/hostapi/coreaudio/pa_mac_core_blocking.c")
     host_api_sources.append("./portaudio/src/hostapi/coreaudio/pa_mac_core_old.c")
     host_api_sources.append("./portaudio/src/hostapi/coreaudio/pa_mac_core_utilities.c")
+    
   if(host_api == "oss"):
     module_env.Append(CPPDEFINES=["PA_USE_OSS"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/oss"])
