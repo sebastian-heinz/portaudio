@@ -13,20 +13,22 @@ module for godot
 Download the zip (https://github.com/sebastian-heinz/portaudio/archive/master.zip) and extract it into the godot/modules-folder.
 Since it is missing the portaudio source, it has to be manually added. Get it from http://www.portaudio.com/archives/pa_stable_v190600_20161030.tgz and paste it into the empty portaudio folder. (./portaudio/portaudio/).
 
+## Building
+edit the [SCsub](./SCsub) file and comment / uncomment the desired host apis `use_host_api = [`.
+When building godot it will check if the host api is supported for the platform (windows, linux or osx) and available inside the `use_host_api`-array. Only then the host api will be available.
+
+## Driver
+### WASAPI
+- if used godots wasapi driver will be disabled
+
 ## About
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
 - `PortAudioNode` is a godot node. Its primary purpose is to be extended via GDScript, so that it is possible to have the PortAudio-Audio-Callback available in GDScript.
 - If working with c++ one can simply import the `#include "portaudio/include/portaudio.h"` PortAudio-Header and directly work with PortAudio's API.
 
-## Status
-Currenlty only tested ASIO driver under windows.
-
 ## TODO / ISSUES
-- Add build switches to specify which host apis should be build. Currently if ASIO driver are not found the build will abort.
-- The GDScript bindings need to be improoved, so might need to create more wrapper classes to expose functionality to GDScript.
-- FInd out if there is a way to have callbacks working in GDScript, so it can also benefit from directly invoking the `PortAudio` singleton, instead of extending `PortAudioNode`
-- [WIN] [WASAPI] clashes with godots WASAPI imports.
-- [WIN] [WDMKS] also seems to clash with godot imports. (error LNK2005: KSDATAFORMAT_SUBTYPE_MIDI already defined in dxguid.lib(dxguid.obj))
+- The GDScript bindings need to be improoved, need to create more wrapper classes to expose functionality to GDScript.
+- [WIN] [WDMKS]-driver clashes with godot imports. (error LNK2005: KSDATAFORMAT_SUBTYPE_MIDI already defined in dxguid.lib(dxguid.obj))
 - [LINUX] build pipeline untested.
 - [OSX] build pipeline untested.
 
