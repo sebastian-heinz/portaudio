@@ -58,6 +58,7 @@ A `PortAudioTestNode` exists, simply add it to a scene via the editor and it wil
 ## TODO
 - The GDScript bindings need to be improoved, create more wrapper classes to expose functionality to GDScript.
 - doc_classes need to be written for GDScript documentation.
+- Provide some wav / ogg playback capabilities out of the box for ease of access, maybe able to utilize existing godot `AudioStream` class.
 - [WIN] [WDMKS]-driver clashes with godot imports. (error LNK2005: KSDATAFORMAT_SUBTYPE_MIDI already defined in dxguid.lib(dxguid.obj))
 - [LINUX] build pipeline untested.
 - [OSX] build pipeline untested.
