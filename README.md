@@ -40,6 +40,10 @@ When building godot it will check if the host api is supported for the platform 
 - `PortAudioNode` is a godot node. Its primary purpose is to be extended via GDScript, so that it is possible to have the PortAudio-Audio-Callback available in GDScript.
 - If working with c++ one can simply import the `#include "portaudio/include/portaudio.h"` PortAudio-Header and directly work with PortAudio's API.
 
+## Examples
+A `PortAudioTestNode` exists, simply add it to a scene via the editor and it will enumerate your host apis and devices and print them out:  
+<img src="/doc/test_node.png" width="800">  
+
 ## TODO
 - The GDScript bindings need to be improoved, need to create more wrapper classes to expose functionality to GDScript.
 - [WIN] [WDMKS]-driver clashes with godot imports. (error LNK2005: KSDATAFORMAT_SUBTYPE_MIDI already defined in dxguid.lib(dxguid.obj))
