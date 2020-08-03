@@ -2,6 +2,17 @@ portaudio
 ===
 module for godot
 
+## Why?
+### Pros
+- Audio is not tied to any Godot-Node, it can be controlled from anywhere.
+- Flexibility choose which driver to use at runtime, depending on the system and apis that are available.
+- Most likely a lower latency due to more direct access to audio hardware. (beneficial for music rythm games)
+- Full control over input buffer (for recording requirements) and output buffer. (beneficial for audio tools)
+
+### Cons
+- Requires to write your own audio pipeline. (from decoding the file format, to filling the playback buffer)
+- More code to detect and configure the driver.
+
 ## Setup:
 ### via submodule
 - open a terminal inside the godot source folder and run the following commands:  
