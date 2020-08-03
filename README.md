@@ -1,4 +1,4 @@
-godot-portaudio
+portaudio
 ===
 module for godot
 
