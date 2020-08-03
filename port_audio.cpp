@@ -58,7 +58,7 @@ int PortAudio::port_audio_callback_converter(const void *p_input_buffer, void *p
 
  @see paMakeVersionNumber
 */
-int PortAudio::version() {
+int PortAudio::get_version() {
 	return Pa_GetVersion();
 }
 
@@ -69,8 +69,210 @@ int PortAudio::version() {
 
  @deprecated As of 19.5.0, use Pa_GetVersionInfo()->versionText instead.
 */
-String PortAudio::version_text() {
+String PortAudio::get_version_text() {
 	return String(Pa_GetVersionText());
+}
+
+/**
+ * Translate the supplied PortAudio error code into a human readable message.
+*/
+String PortAudio::get_error_text(PortAudio::PortAudioError p_error) {
+	switch (p_error) {
+		case UNDEFINED:
+			return "Undefined error code";
+		case NOT_PORT_AUDIO_NODE:
+			return "Provided node is not of type PortAudioNode";
+	}
+	return String(Pa_GetErrorText(p_error));
+}
+
+/** Retrieve the number of available host APIs. Even if a host API is
+ available it may have no devices available.
+
+ @return A non-negative value indicating the number of available host APIs
+ or, a PaErrorCode (which are always negative) if PortAudio is not initialized
+ or an error is encountered.
+
+ @see PaHostApiIndex
+*/
+int PortAudio::get_host_api_count() {
+	return Pa_GetHostApiCount();
+}
+
+/** Retrieve the index of the default host API. The default host API will be
+ the lowest common denominator host API on the current platform and is
+ unlikely to provide the best performance.
+
+ @return A non-negative value ranging from 0 to (Pa_GetHostApiCount()-1)
+ indicating the default host API index or, a PaErrorCode (which are always
+ negative) if PortAudio is not initialized or an error is encountered.
+*/
+int PortAudio::get_default_host_api() {
+	return Pa_GetDefaultHostApi();
+}
+
+/** Retrieve a pointer to a structure containing information about a specific
+ host Api.
+
+ @param hostApi A valid host API index ranging from 0 to (Pa_GetHostApiCount()-1)
+
+ @return A pointer to an immutable PaHostApiInfo structure describing
+ a specific host API. If the hostApi parameter is out of range or an error
+ is encountered, the function returns NULL.
+
+ The returned structure is owned by the PortAudio implementation and must not
+ be manipulated or freed. The pointer is only guaranteed to be valid between
+ calls to Pa_Initialize() and Pa_Terminate().
+*/
+Dictionary PortAudio::get_host_api_info(int p_host_api) {
+	const PaHostApiInfo *pa_api_info = Pa_GetHostApiInfo(p_host_api);
+
+	Dictionary api_info;
+
+	/** this is struct version 1 */
+	api_info["struct_version"] = pa_api_info->structVersion;
+
+	/** The well known unique identifier of this host API @see PaHostApiTypeId */
+	api_info["type"] = (int)pa_api_info->type; // TODO enum
+
+	/** A textual description of the host API for display on user interfaces. */
+	api_info["name"] = String(pa_api_info->name);
+
+	/**  The number of devices belonging to this host API. This field may be
+     used in conjunction with Pa_HostApiDeviceIndexToDeviceIndex() to enumerate
+     all devices for this host API.
+     @see Pa_HostApiDeviceIndexToDeviceIndex
+    */
+	api_info["device_count"] = pa_api_info->deviceCount;
+
+	/** The default input device for this host API. The value will be a
+     device index ranging from 0 to (Pa_GetDeviceCount()-1), or paNoDevice
+     if no default input device is available.
+    */
+	api_info["default_input_device"] = pa_api_info->defaultInputDevice;
+
+	/** The default output device for this host API. The value will be a
+     device index ranging from 0 to (Pa_GetDeviceCount()-1), or paNoDevice
+     if no default output device is available.
+    */
+	api_info["default_output_device"] = pa_api_info->defaultOutputDevice;
+
+	return api_info;
+}
+
+/** Convert a static host API unique identifier, into a runtime
+ host API index.
+
+ @param type A unique host API identifier belonging to the PaHostApiTypeId
+ enumeration.
+
+ @return A valid PaHostApiIndex ranging from 0 to (Pa_GetHostApiCount()-1) or,
+ a PaErrorCode (which are always negative) if PortAudio is not initialized
+ or an error is encountered.
+ 
+ The paHostApiNotFound error code indicates that the host API specified by the
+ type parameter is not available.
+
+ @see PaHostApiTypeId
+*/
+int PortAudio::host_api_type_id_to_host_api_index(int p_host_api_type_id) {
+	return Pa_HostApiTypeIdToHostApiIndex((PaHostApiTypeId)p_host_api_type_id);
+}
+
+/** Convert a host-API-specific device index to standard PortAudio device index.
+ This function may be used in conjunction with the deviceCount field of
+ PaHostApiInfo to enumerate all devices for the specified host API.
+
+ @param hostApi A valid host API index ranging from 0 to (Pa_GetHostApiCount()-1)
+
+ @param hostApiDeviceIndex A valid per-host device index in the range
+ 0 to (Pa_GetHostApiInfo(hostApi)->deviceCount-1)
+
+ @return A non-negative PaDeviceIndex ranging from 0 to (Pa_GetDeviceCount()-1)
+ or, a PaErrorCode (which are always negative) if PortAudio is not initialized
+ or an error is encountered.
+
+ A paInvalidHostApi error code indicates that the host API index specified by
+ the hostApi parameter is out of range.
+
+ A paInvalidDevice error code indicates that the hostApiDeviceIndex parameter
+ is out of range.
+ 
+ @see PaHostApiInfo
+*/
+int PortAudio::host_api_device_index_to_device_index(int p_host_api, int p_host_api_device_index) {
+	return Pa_HostApiDeviceIndexToDeviceIndex(p_host_api, p_host_api_device_index);
+}
+
+/* Device enumeration and capabilities */
+
+/** Retrieve the number of available devices. The number of available devices
+ may be zero.
+
+ @return A non-negative value indicating the number of available devices or,
+ a PaErrorCode (which are always negative) if PortAudio is not initialized
+ or an error is encountered.
+*/
+int PortAudio::get_device_count() {
+	return Pa_GetDeviceCount();
+}
+
+/** Retrieve the index of the default input device. The result can be
+ used in the inputDevice parameter to Pa_OpenStream().
+
+ @return The default input device index for the default host API, or paNoDevice
+ if no default input device is available or an error was encountered.
+*/
+int PortAudio::get_default_input_device() {
+	return Pa_GetDefaultInputDevice();
+}
+
+/** Retrieve the index of the default output device. The result can be
+ used in the outputDevice parameter to Pa_OpenStream().
+
+ @return The default output device index for the default host API, or paNoDevice
+ if no default output device is available or an error was encountered.
+
+ @note
+ On the PC, the user can specify a default device by
+ setting an environment variable. For example, to use device #1.
+<pre>
+ set PA_RECOMMENDED_OUTPUT_DEVICE=1
+</pre>
+ The user should first determine the available device ids by using
+ the supplied application "pa_devs".
+*/
+int PortAudio::get_default_output_device() {
+	return Pa_GetDefaultOutputDevice();
+}
+
+Dictionary PortAudio::get_device_info(int p_device_index) {
+
+	const PaDeviceInfo *pa_device_info = Pa_GetDeviceInfo((PaDeviceIndex)p_device_index);
+
+	Dictionary device_info;
+
+	/* this is struct version 2 */
+	device_info["struct_version"] = pa_device_info->structVersion;
+
+	device_info["name"] = String(pa_device_info->name);
+
+	/**< note this is a host API index, not a type id*/
+	device_info["host_api"] = pa_device_info->hostApi;
+	device_info["max_input_channels"] = pa_device_info->maxInputChannels;
+	device_info["max_output_channels"] = pa_device_info->maxOutputChannels;
+
+	/** Default latency values for interactive performance. */
+	device_info["default_low_input_latency"] = pa_device_info->defaultLowInputLatency;
+	device_info["default_low_output_latency"] = pa_device_info->defaultLowOutputLatency;
+
+	/** Default latency values for robust non-interactive applications (eg. playing sound files). */
+	device_info["default_high_input_latency"] = pa_device_info->defaultHighInputLatency;
+	device_info["default_high_output_latency"] = pa_device_info->defaultHighOutputLatency;
+
+	device_info["default_sample_rate"] = pa_device_info->defaultSampleRate;
+
+	return device_info;
 }
 
 /** Library initialization function - call this before using PortAudio.
@@ -151,6 +353,14 @@ Terminates audio processing. It waits until all pending
 */
 PortAudio::PortAudioError PortAudio::stop_stream(void *p_stream) {
 	PaError err = Pa_StopStream(p_stream);
+	return get_error(err);
+}
+
+/** Terminates audio processing immediately without waiting for pending
+ buffers to complete.
+*/
+PortAudio::PortAudioError PortAudio::abort_stream(void *p_stream) {
+	PaError err = Pa_AbortStream(p_stream);
 	return get_error(err);
 }
 
@@ -348,8 +558,8 @@ PortAudio::PortAudioError PortAudio::get_error(PaError p_error) {
 }
 
 void PortAudio::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("version"), &PortAudio::version);
-	ClassDB::bind_method(D_METHOD("version_text"), &PortAudio::version_text);
+	ClassDB::bind_method(D_METHOD("version"), &PortAudio::get_version);
+	ClassDB::bind_method(D_METHOD("version_text"), &PortAudio::get_version_text);
 	ClassDB::bind_method(D_METHOD("initialize"), &PortAudio::initialize);
 	ClassDB::bind_method(D_METHOD("terminate"), &PortAudio::terminate);
 	ClassDB::bind_method(D_METHOD("sleep", "ms"), &PortAudio::sleep);

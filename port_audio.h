@@ -61,31 +61,54 @@ private:
 
 	static PortAudio *singleton;
 
+	PortAudio::PortAudioError get_error(PaError p_error);
+
 protected:
 	static void _bind_methods();
 
 public:
 	static PortAudio *get_singleton();
-	static PortAudio::PortAudioError get_error(PaError p_error);
+
 	static int port_audio_callback_converter(const void *p_input_buffer, void *p_output_buffer,
 			unsigned long p_frames_per_buffer, const PaStreamCallbackTimeInfo *p_time_info,
 			PaStreamCallbackFlags p_status_flags, void *p_user_data);
 
-	int version();
-	String version_text();
+	int get_version();
+	String get_version_text();
+	// Pa_GetVersionInfo
+	String get_error_text(PortAudio::PortAudioError p_error);
 	PortAudio::PortAudioError initialize();
 	PortAudio::PortAudioError terminate();
+	int get_host_api_count();
+	int get_default_host_api();
+	Dictionary get_host_api_info(int p_host_api);
+	int host_api_type_id_to_host_api_index(int p_host_api_type_id);
+	int host_api_device_index_to_device_index(int p_host_api, int p_host_api_device_index);
+	// Pa_GetLastHostErrorInfo
+	int get_device_count();
+	int get_default_input_device();
+	int get_default_output_device();
+	Dictionary get_device_info(int p_device_index);
+	// Pa_IsFormatSupported
+	// Pa_OpenStream
 	PortAudio::PortAudioError open_default_stream(void **p_stream, int p_input_channel_count,
 			int p_output_channel_count, double p_sample_rate, unsigned long p_frames_per_buffer,
 			AudioCallback *p_audio_callback, void *p_user_data);
+	PortAudio::PortAudioError close_stream(void *p_stream);
+	//Pa_SetStreamFinishedCallback
 	PortAudio::PortAudioError start_stream(void *p_stream);
 	PortAudio::PortAudioError stop_stream(void *p_stream);
-	PortAudio::PortAudioError close_stream(void *p_stream);
+	PortAudio::PortAudioError abort_stream(void *p_stream);
 	PortAudio::PortAudioError is_stream_stopped(void *p_stream);
 	PortAudio::PortAudioError is_stream_active(void *p_stream);
-	double get_stream_time(void *p_stream);
 	Dictionary get_stream_info(void *p_stream);
+	double get_stream_time(void *p_stream);
 	double get_stream_cpu_load(void *p_stream);
+	// Pa_ReadStream
+	// Pa_WriteStream
+	// Pa_GetStreamReadAvailable
+	// Pa_GetStreamWriteAvailable
+	// Pa_GetSampleSize
 	void sleep(unsigned int p_ms);
 
 	PortAudio();

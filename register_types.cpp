@@ -2,6 +2,7 @@
 
 #include "./port_audio.h"
 #include "./port_audio_node.h"
+#include "./port_audio_test_node.h"
 
 #include <core/class_db.h>
 #include <core/engine.h>
@@ -16,6 +17,7 @@ void register_portaudio_types() {
 
 	// Classes
 	ClassDB::register_class<PortAudioNode>();
+	ClassDB::register_class<PortAudioTestNode>();
 }
 
 void unregister_portaudio_types() {
