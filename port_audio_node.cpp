@@ -21,7 +21,7 @@ PoolVector<uint8_t> PortAudioNode::get_data() {
 }
 
 PortAudio::PortAudioError PortAudioNode::open_default_stream() {
-	PaStream *pa_stream;
+	void *pa_stream;
 	PortAudio::PortAudioError err = PortAudio::get_singleton()->open_default_stream(&pa_stream,
 			input_channel_count,
 			output_channel_count,
@@ -163,7 +163,7 @@ PortAudioNode::PortAudioNode() {
 	input_channel_count = 0;
 	output_channel_count = 2;
 	sample_rate = 44100;
-	frames_per_buffer = paFramesPerBufferUnspecified;
+	frames_per_buffer = 0; //paFramesPerBufferUnspecified;
 	stream = NULL;
 	data_position = 0;
 	data = PoolVector<uint8_t>();

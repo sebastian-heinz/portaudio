@@ -15,7 +15,7 @@ private:
 			unsigned long p_status_flags, void *p_user_data);
 
 	unsigned int data_position;
-	PaStream *stream;
+	void *stream;
 	PoolVector<uint8_t> data;
 	double sample_rate;
 	int input_channel_count;

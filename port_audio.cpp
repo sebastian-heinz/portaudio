@@ -2,13 +2,22 @@
 
 #include "port_audio_node.h"
 
-PortAudio *PortAudio::singleton = NULL;
+#include "portaudio/include/portaudio.h"
 
-PortAudio *PortAudio::get_singleton() {
-	return singleton;
-}
+#pragma region IMP_DETAILS
+class PaCallbackUserData {
+public:
+	void *port_audio;
+	void *audio_callback;
+	void *audio_callback_user_data;
+	PaCallbackUserData::PaCallbackUserData() {
+		port_audio = NULL;
+		audio_callback = NULL;
+		audio_callback_user_data = NULL;
+	}
+};
 
-int PortAudio::port_audio_callback_converter(const void *p_input_buffer, void *p_output_buffer,
+static int port_audio_callback_converter(const void *p_input_buffer, void *p_output_buffer,
 		unsigned long p_frames_per_buffer, const PaStreamCallbackTimeInfo *p_time_info,
 		PaStreamCallbackFlags p_status_flags, void *p_user_data) {
 
@@ -39,7 +48,7 @@ int PortAudio::port_audio_callback_converter(const void *p_input_buffer, void *p
 	time_info["output_buffer_dac_time"] = p_time_info->outputBufferDacTime;
 	// perform callback
 	PoolVector<float> pool_vector_out;
-	AudioCallback *audio_callback = (AudioCallback *)user_data->audio_callback;
+	PortAudio::AudioCallback *audio_callback = (PortAudio::AudioCallback *)user_data->audio_callback;
 	audio_callback(pool_vector_in, pool_vector_out, p_frames_per_buffer,
 			time_info, p_status_flags, user_data->audio_callback_user_data);
 	// copy result into buffer (TODO might need to find a faster way)
@@ -51,6 +60,81 @@ int PortAudio::port_audio_callback_converter(const void *p_input_buffer, void *p
 	}
 	read_out.release();
 	return 0;
+}
+
+static PortAudio::PortAudioError get_error(PaError p_error) {
+	switch (p_error) {
+		case paNoError:
+			return PortAudio::PortAudioError::NO_ERROR;
+		case paNotInitialized:
+			return PortAudio::PortAudioError::NOT_INITIALIZED;
+		case paUnanticipatedHostError:
+			return PortAudio::PortAudioError::UNANTICIPATED_HOST_ERROR;
+		case paInvalidChannelCount:
+			return PortAudio::PortAudioError::INVALID_CHANNEL_COUNT;
+		case paInvalidSampleRate:
+			return PortAudio::PortAudioError::INVALID_SAMPLE_RATE;
+		case paInvalidDevice:
+			return PortAudio::PortAudioError::INVALID_DEVICE;
+		case paInvalidFlag:
+			return PortAudio::PortAudioError::INVALID_FLAG;
+		case paSampleFormatNotSupported:
+			return PortAudio::PortAudioError::SAMPLE_FORMAT_NOT_SUPPORTED;
+		case paBadIODeviceCombination:
+			return PortAudio::PortAudioError::BAD_IO_DEVICE_COMBINATION;
+		case paInsufficientMemory:
+			return PortAudio::PortAudioError::INSUFFICIENT_MEMORY;
+		case paBufferTooBig:
+			return PortAudio::PortAudioError::BUFFER_TO_BIG;
+		case paBufferTooSmall:
+			return PortAudio::PortAudioError::BUFFER_TOO_SMALL;
+		case paNullCallback:
+			return PortAudio::PortAudioError::NULL_CALLBACK;
+		case paBadStreamPtr:
+			return PortAudio::PortAudioError::BAD_STREAM_PTR;
+		case paTimedOut:
+			return PortAudio::PortAudioError::TIMED_OUT;
+		case paInternalError:
+			return PortAudio::PortAudioError::INTERNAL_ERROR;
+		case paDeviceUnavailable:
+			return PortAudio::PortAudioError::DEVICE_UNAVAILABLE;
+		case paIncompatibleHostApiSpecificStreamInfo:
+			return PortAudio::PortAudioError::INCOMPATIBLE_HOST_API_SPECIFIC_STREAM_INFO;
+		case paStreamIsStopped:
+			return PortAudio::PortAudioError::STREAM_IS_STOPPED;
+		case paStreamIsNotStopped:
+			return PortAudio::PortAudioError::STREAM_IS_NOT_STOPPED;
+		case paInputOverflowed:
+			return PortAudio::PortAudioError::INPUT_OVERFLOWED;
+		case paOutputUnderflowed:
+			return PortAudio::PortAudioError::OUTPUT_UNDERFLOWED;
+		case paHostApiNotFound:
+			return PortAudio::PortAudioError::HOST_API_NOT_FOUND;
+		case paInvalidHostApi:
+			return PortAudio::PortAudioError::INVALID_HOST_API;
+		case paCanNotReadFromACallbackStream:
+			return PortAudio::PortAudioError::CAN_NOT_READ_FROM_A_CALLBACK_STREAM;
+		case paCanNotWriteToACallbackStream:
+			return PortAudio::PortAudioError::CAN_NOT_WRITE_TO_A_CALLBACK_STREAM;
+		case paCanNotReadFromAnOutputOnlyStream:
+			return PortAudio::PortAudioError::CAN_NOT_READ_FROM_AN_OUT_PUTONLY_STREAM;
+		case paCanNotWriteToAnInputOnlyStream:
+			return PortAudio::PortAudioError::CAN_NOT_WRITE_TO_AN_INPUT_ONLY_STREAM;
+		case paIncompatibleStreamHostApi:
+			return PortAudio::PortAudioError::INCOMPATIBLE_STREAM_HOST_API;
+		case paBadBufferPtr:
+			return PortAudio::PortAudioError::BAD_BUFFER_PTR;
+	}
+	print_error(vformat("PortAudio::get_error: UNDEFINED error code: %d", p_error));
+	return PortAudio::PortAudioError::UNDEFINED;
+}
+
+#pragma endregion IMP_DETAILS
+
+PortAudio *PortAudio::singleton = NULL;
+
+PortAudio *PortAudio::get_singleton() {
+	return singleton;
 }
 
 /** Retrieve the release number of the currently running PortAudio build.
@@ -334,7 +418,7 @@ PortAudio::PortAudioError PortAudio::open_default_stream(void **p_stream, int p_
 			paFloat32,
 			p_sample_rate,
 			p_frames_per_buffer,
-			&PortAudio::port_audio_callback_converter,
+			&port_audio_callback_converter,
 			user_data);
 	return get_error(err);
 }
@@ -490,73 +574,6 @@ void PortAudio::sleep(unsigned int p_ms) {
 	Pa_Sleep(p_ms);
 }
 
-PortAudio::PortAudioError PortAudio::get_error(PaError p_error) {
-	switch (p_error) {
-		case paNoError:
-			return PortAudio::PortAudioError::NO_ERROR;
-		case paNotInitialized:
-			return PortAudio::PortAudioError::NOT_INITIALIZED;
-		case paUnanticipatedHostError:
-			return PortAudio::PortAudioError::UNANTICIPATED_HOST_ERROR;
-		case paInvalidChannelCount:
-			return PortAudio::PortAudioError::INVALID_CHANNEL_COUNT;
-		case paInvalidSampleRate:
-			return PortAudio::PortAudioError::INVALID_SAMPLE_RATE;
-		case paInvalidDevice:
-			return PortAudio::PortAudioError::INVALID_DEVICE;
-		case paInvalidFlag:
-			return PortAudio::PortAudioError::INVALID_FLAG;
-		case paSampleFormatNotSupported:
-			return PortAudio::PortAudioError::SAMPLE_FORMAT_NOT_SUPPORTED;
-		case paBadIODeviceCombination:
-			return PortAudio::PortAudioError::BAD_IO_DEVICE_COMBINATION;
-		case paInsufficientMemory:
-			return PortAudio::PortAudioError::INSUFFICIENT_MEMORY;
-		case paBufferTooBig:
-			return PortAudio::PortAudioError::BUFFER_TO_BIG;
-		case paBufferTooSmall:
-			return PortAudio::PortAudioError::BUFFER_TOO_SMALL;
-		case paNullCallback:
-			return PortAudio::PortAudioError::NULL_CALLBACK;
-		case paBadStreamPtr:
-			return PortAudio::PortAudioError::BAD_STREAM_PTR;
-		case paTimedOut:
-			return PortAudio::PortAudioError::TIMED_OUT;
-		case paInternalError:
-			return PortAudio::PortAudioError::INTERNAL_ERROR;
-		case paDeviceUnavailable:
-			return PortAudio::PortAudioError::DEVICE_UNAVAILABLE;
-		case paIncompatibleHostApiSpecificStreamInfo:
-			return PortAudio::PortAudioError::INCOMPATIBLE_HOST_API_SPECIFIC_STREAM_INFO;
-		case paStreamIsStopped:
-			return PortAudio::PortAudioError::STREAM_IS_STOPPED;
-		case paStreamIsNotStopped:
-			return PortAudio::PortAudioError::STREAM_IS_NOT_STOPPED;
-		case paInputOverflowed:
-			return PortAudio::PortAudioError::INPUT_OVERFLOWED;
-		case paOutputUnderflowed:
-			return PortAudio::PortAudioError::OUTPUT_UNDERFLOWED;
-		case paHostApiNotFound:
-			return PortAudio::PortAudioError::HOST_API_NOT_FOUND;
-		case paInvalidHostApi:
-			return PortAudio::PortAudioError::INVALID_HOST_API;
-		case paCanNotReadFromACallbackStream:
-			return PortAudio::PortAudioError::CAN_NOT_READ_FROM_A_CALLBACK_STREAM;
-		case paCanNotWriteToACallbackStream:
-			return PortAudio::PortAudioError::CAN_NOT_WRITE_TO_A_CALLBACK_STREAM;
-		case paCanNotReadFromAnOutputOnlyStream:
-			return PortAudio::PortAudioError::CAN_NOT_READ_FROM_AN_OUT_PUTONLY_STREAM;
-		case paCanNotWriteToAnInputOnlyStream:
-			return PortAudio::PortAudioError::CAN_NOT_WRITE_TO_AN_INPUT_ONLY_STREAM;
-		case paIncompatibleStreamHostApi:
-			return PortAudio::PortAudioError::INCOMPATIBLE_STREAM_HOST_API;
-		case paBadBufferPtr:
-			return PortAudio::PortAudioError::BAD_BUFFER_PTR;
-	}
-	print_error(vformat("PortAudio::get_error: UNDEFINED error code: %d", p_error));
-	return PortAudio::PortAudioError::UNDEFINED;
-}
-
 void PortAudio::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("version"), &PortAudio::get_version);
 	ClassDB::bind_method(D_METHOD("version_text"), &PortAudio::get_version_text);
@@ -612,10 +629,4 @@ PortAudio::~PortAudio() {
 	if (err != PortAudio::PortAudioError::NO_ERROR) {
 		print_error(vformat("PortAudio::PortAudio: failed to terminate (%d)", err));
 	}
-}
-
-PortAudio::PaCallbackUserData::PaCallbackUserData() {
-	port_audio = NULL;
-	audio_callback = NULL;
-	audio_callback_user_data = NULL;
 }

@@ -3,8 +3,6 @@
 
 #include <core/object.h>
 
-#include "portaudio/include/portaudio.h"
-
 class PortAudio : public Object {
 	GDCLASS(PortAudio, Object);
 
@@ -51,27 +49,13 @@ public:
 	};
 
 private:
-	class PaCallbackUserData {
-	public:
-		void *port_audio;
-		void *audio_callback;
-		void *audio_callback_user_data;
-		PaCallbackUserData();
-	};
-
 	static PortAudio *singleton;
-
-	PortAudio::PortAudioError get_error(PaError p_error);
 
 protected:
 	static void _bind_methods();
 
 public:
 	static PortAudio *get_singleton();
-
-	static int port_audio_callback_converter(const void *p_input_buffer, void *p_output_buffer,
-			unsigned long p_frames_per_buffer, const PaStreamCallbackTimeInfo *p_time_info,
-			PaStreamCallbackFlags p_status_flags, void *p_user_data);
 
 	int get_version();
 	String get_version_text();
