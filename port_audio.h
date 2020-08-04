@@ -1,9 +1,9 @@
 #ifndef PORT_AUDIO_H
 #define PORT_AUDIO_H
 
-#include "portaudio/include/portaudio.h"
-
 #include <core/object.h>
+
+#include "portaudio/include/portaudio.h"
 
 class PortAudio : public Object {
 	GDCLASS(PortAudio, Object);
