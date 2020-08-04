@@ -64,6 +64,7 @@ A `PortAudioTestNode` exists, simply add it to a scene via the editor and it wil
 - [OSX] build pipeline untested.
 
 ## Dependencies
+- Godot: `3.2`
 - PortAudio: `pa_stable_v190600_20161030`
 - ASIO SDK: `2.0+` (optional)
 
