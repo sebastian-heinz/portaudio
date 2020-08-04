@@ -6,7 +6,7 @@ import sys
 Import('env')
 module_env = env.Clone()
 
-# only APIs that are not uncommented will be build
+# only APIs that are not commented will be build
 use_host_api = [
 # "skeleton",  # Test Host Api for developers
   "asio",      # ASIO (Audio Streaming Input Output)
@@ -22,6 +22,8 @@ use_host_api = [
 ]
 
 # Portaudio sources
+module_env.Append(CPPDEFINES=[('PA_GIT_REVISION', 'godot-module-396fe4b')])
+
 available_host_apis = []
 
 pa_sources = [
