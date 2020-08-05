@@ -100,8 +100,8 @@ void PortAudioStream::_bind_methods() {
 PortAudioStream::PortAudioStream() {
 	stream = NULL;
 	input_channel_count = 0;
-	output_channel_count = 0;
-	sample_rate = 0;
+	output_channel_count = 2;
+	sample_rate = 44100.0;
 	frames_per_buffer = 0;
 	input_stream_parameter = Ref<PortAudioStreamParameter>();
 	output_stream_parameter = Ref<PortAudioStreamParameter>();
