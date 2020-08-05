@@ -1,15 +1,21 @@
 #ifndef PORT_AUDIO_H
 #define PORT_AUDIO_H
 
+#include "port_audio_stream.h"
+
 #include <core/object.h>
 
 class PortAudio : public Object {
 	GDCLASS(PortAudio, Object);
 
 public:
-	typedef int AudioCallback(const PoolVector<float> &p_input_buffer, PoolVector<float> &p_output_buffer,
-			unsigned long p_frames_per_buffer, Variant p_time_info,
-			unsigned long p_status_flags, void *user_data);
+	typedef int AudioCallback(
+			const PoolVector<uint8_t> &p_input_buffer,
+			PoolVector<uint8_t> &p_output_buffer,
+			unsigned long p_frames_per_buffer,
+			Dictionary p_time_info,
+			unsigned long p_status_flags,
+			void *user_data);
 
 	enum PortAudioError {
 		// Custom Error
@@ -51,6 +57,9 @@ public:
 private:
 	static PortAudio *singleton;
 
+	int output_buffer_size;
+
+
 protected:
 	static void _bind_methods();
 
@@ -73,27 +82,28 @@ public:
 	int get_default_input_device();
 	int get_default_output_device();
 	Dictionary get_device_info(int p_device_index);
-	// Pa_IsFormatSupported
-	// Pa_OpenStream
-	PortAudio::PortAudioError open_default_stream(void **p_stream, int p_input_channel_count,
-			int p_output_channel_count, double p_sample_rate, unsigned long p_frames_per_buffer,
-			AudioCallback *p_audio_callback, void *p_user_data);
-	PortAudio::PortAudioError close_stream(void *p_stream);
+	PortAudio::PortAudioError is_format_supported(Ref<PortAudioStreamParameter> p_input_stream_parameter, Ref<PortAudioStreamParameter> p_output_stream_parameter, double p_sample_rate);
+	PortAudio::PortAudioError open_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data);
+	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data);
+	PortAudio::PortAudioError close_stream(Ref<PortAudioStream> p_stream);
 	//Pa_SetStreamFinishedCallback
-	PortAudio::PortAudioError start_stream(void *p_stream);
-	PortAudio::PortAudioError stop_stream(void *p_stream);
-	PortAudio::PortAudioError abort_stream(void *p_stream);
-	PortAudio::PortAudioError is_stream_stopped(void *p_stream);
-	PortAudio::PortAudioError is_stream_active(void *p_stream);
-	Dictionary get_stream_info(void *p_stream);
-	double get_stream_time(void *p_stream);
-	double get_stream_cpu_load(void *p_stream);
+	PortAudio::PortAudioError start_stream(Ref<PortAudioStream> p_stream);
+	PortAudio::PortAudioError stop_stream(Ref<PortAudioStream> p_stream);
+	PortAudio::PortAudioError abort_stream(Ref<PortAudioStream> p_stream);
+	PortAudio::PortAudioError is_stream_stopped(Ref<PortAudioStream> p_stream);
+	PortAudio::PortAudioError is_stream_active(Ref<PortAudioStream> p_stream);
+	Dictionary get_stream_info(Ref<PortAudioStream> p_stream);
+	double get_stream_time(Ref<PortAudioStream> p_stream);
+	double get_stream_cpu_load(Ref<PortAudioStream> p_stream);
 	// Pa_ReadStream
 	// Pa_WriteStream
 	// Pa_GetStreamReadAvailable
 	// Pa_GetStreamWriteAvailable
 	// Pa_GetSampleSize
 	void sleep(unsigned int p_ms);
+
+	int get_output_buffer_size();
+	void set_output_buffer_size(int p_output_buffer_size);
 
 	PortAudio();
 	~PortAudio();

@@ -7,13 +7,15 @@
 #pragma region IMP_DETAILS
 class PaCallbackUserData {
 public:
-	void *port_audio;
-	void *audio_callback;
+	PortAudio *port_audio;
+	PortAudio::AudioCallback *audio_callback;
 	void *audio_callback_user_data;
+	PoolVector<uint8_t> output_buffer;
 	PaCallbackUserData::PaCallbackUserData() {
 		port_audio = NULL;
 		audio_callback = NULL;
 		audio_callback_user_data = NULL;
+		output_buffer = PoolVector<uint8_t>();
 	}
 };
 
@@ -26,40 +28,36 @@ static int port_audio_callback_converter(const void *p_input_buffer, void *p_out
 		print_line("PortAudio::port_audio_callback_converter: !user_data");
 		return 0;
 	}
-	// copy input buffer to godot type (TODO might need to find a faster way)
-	PoolVector<float> pool_vector_in;
+
+	// copy input buffer to godot type, if available
+	PoolVector<uint8_t> input_buffer;
 	if (p_input_buffer) {
-		Error err = pool_vector_in.resize(p_frames_per_buffer);
-		if (err != OK) {
-			print_line(vformat("PortAudio::port_audio_node_callback: can not resize pool_vector_in to: %d", (unsigned int)p_frames_per_buffer));
-			return 0;
-		}
-		float *in = (float *)p_input_buffer;
-		PoolVector<float>::Write write_in = pool_vector_in.write();
-		for (unsigned int i = 0; i < p_frames_per_buffer; i++) {
-			write_in[i] = in[i];
-		}
-		write_in.release();
+		input_buffer.resize(p_frames_per_buffer); // TODO look for a solution withou allocating
+		PoolVector<uint8_t>::Write write_input_buffer = input_buffer.write();
+		uint8_t *write_input_buffer_ptr = write_input_buffer.ptr();
+		copymem(write_input_buffer_ptr, p_input_buffer, p_frames_per_buffer);
+		write_input_buffer.release();
 	}
+
 	// provide time info
 	Dictionary time_info;
 	time_info["input_buffer_adc_time"] = p_time_info->inputBufferAdcTime;
 	time_info["current_time"] = p_time_info->currentTime;
 	time_info["output_buffer_dac_time"] = p_time_info->outputBufferDacTime;
+
+	PoolVector<uint8_t> output_buffer = user_data->output_buffer;
+
 	// perform callback
-	PoolVector<float> pool_vector_out;
 	PortAudio::AudioCallback *audio_callback = (PortAudio::AudioCallback *)user_data->audio_callback;
-	audio_callback(pool_vector_in, pool_vector_out, p_frames_per_buffer,
-			time_info, p_status_flags, user_data->audio_callback_user_data);
-	// copy result into buffer (TODO might need to find a faster way)
-	float *out = (float *)p_output_buffer;
-	unsigned int size_out = pool_vector_out.size();
-	PoolVector<float>::Read read_out = pool_vector_out.read();
-	for (unsigned int i = 0; i < size_out; i++) {
-		out[i] = read_out[i];
-	}
-	read_out.release();
-	return 0;
+	int result = audio_callback(input_buffer, output_buffer, p_frames_per_buffer, time_info, p_status_flags, user_data->audio_callback_user_data);
+
+	// copy result
+	PoolVector<uint8_t>::Read read_output_buffer = output_buffer.read();
+	const uint8_t *read_output_buffer_ptr = read_output_buffer.ptr();
+	copymem(p_output_buffer, read_output_buffer_ptr, output_buffer.size());
+	read_output_buffer.release();
+
+	return result;
 }
 
 static PortAudio::PortAudioError get_error(PaError p_error) {
@@ -168,6 +166,51 @@ String PortAudio::get_error_text(PortAudio::PortAudioError p_error) {
 			return "Provided node is not of type PortAudioNode";
 	}
 	return String(Pa_GetErrorText(p_error));
+}
+
+/** Library initialization function - call this before using PortAudio.
+ This function initializes internal data structures and prepares underlying
+ host APIs for use.  With the exception of Pa_GetVersion(), Pa_GetVersionText(),
+ and Pa_GetErrorText(), this function MUST be called before using any other
+ PortAudio API functions.
+
+ If Pa_Initialize() is called multiple times, each successful 
+ call must be matched with a corresponding call to Pa_Terminate(). 
+ Pairs of calls to Pa_Initialize()/Pa_Terminate() may overlap, and are not 
+ required to be fully nested.
+
+ Note that if Pa_Initialize() returns an error code, Pa_Terminate() should
+ NOT be called.
+
+ @return paNoError if successful, otherwise an error code indicating the cause
+ of failure.
+
+ @see Pa_Terminate
+*/
+PortAudio::PortAudioError PortAudio::initialize() {
+	PaError err = Pa_Initialize();
+	return get_error(err);
+}
+
+/** Library termination function - call this when finished using PortAudio.
+ This function deallocates all resources allocated by PortAudio since it was
+ initialized by a call to Pa_Initialize(). In cases where Pa_Initialise() has
+ been called multiple times, each call must be matched with a corresponding call
+ to Pa_Terminate(). The final matching call to Pa_Terminate() will automatically
+ close any PortAudio streams that are still open.
+
+ Pa_Terminate() MUST be called before exiting a program which uses PortAudio.
+ Failure to do so may result in serious resource leaks, such as audio devices
+ not being available until the next reboot.
+
+ @return paNoError if successful, otherwise an error code indicating the cause
+ of failure.
+ 
+ @see Pa_Initialize
+*/
+PortAudio::PortAudioError PortAudio::terminate() {
+	PaError err = Pa_Terminate();
+	return get_error(err);
 }
 
 /** Retrieve the number of available host APIs. Even if a host API is
@@ -359,75 +402,99 @@ Dictionary PortAudio::get_device_info(int p_device_index) {
 	return device_info;
 }
 
-/** Library initialization function - call this before using PortAudio.
- This function initializes internal data structures and prepares underlying
- host APIs for use.  With the exception of Pa_GetVersion(), Pa_GetVersionText(),
- and Pa_GetErrorText(), this function MUST be called before using any other
- PortAudio API functions.
+PortAudio::PortAudioError PortAudio::is_format_supported(Ref<PortAudioStreamParameter> p_input_stream_parameter, Ref<PortAudioStreamParameter> p_output_stream_parameter, double p_sample_rate) {
 
- If Pa_Initialize() is called multiple times, each successful 
- call must be matched with a corresponding call to Pa_Terminate(). 
- Pairs of calls to Pa_Initialize()/Pa_Terminate() may overlap, and are not 
- required to be fully nested.
+	const PaStreamParameters pa_input_parameter = {
+		p_input_stream_parameter->get_device_index(),
+		p_input_stream_parameter->get_channel_count(),
+		p_input_stream_parameter->get_sample_format(),
+		p_input_stream_parameter->get_suggested_latency(),
+		p_input_stream_parameter->get_host_api_specific_stream_info(),
+	};
 
- Note that if Pa_Initialize() returns an error code, Pa_Terminate() should
- NOT be called.
+	const PaStreamParameters pa_output_parameter = {
+		p_output_stream_parameter->get_device_index(),
+		p_output_stream_parameter->get_channel_count(),
+		p_output_stream_parameter->get_sample_format(),
+		p_output_stream_parameter->get_suggested_latency(),
+		p_output_stream_parameter->get_host_api_specific_stream_info(),
+	};
 
- @return paNoError if successful, otherwise an error code indicating the cause
- of failure.
-
- @see Pa_Terminate
-*/
-PortAudio::PortAudioError PortAudio::initialize() {
-	PaError err = Pa_Initialize();
+	PaError err = Pa_IsFormatSupported(&pa_input_parameter, &pa_output_parameter, p_sample_rate);
 	return get_error(err);
 }
 
-/** Library termination function - call this when finished using PortAudio.
- This function deallocates all resources allocated by PortAudio since it was
- initialized by a call to Pa_Initialize(). In cases where Pa_Initialise() has
- been called multiple times, each call must be matched with a corresponding call
- to Pa_Terminate(). The final matching call to Pa_Terminate() will automatically
- close any PortAudio streams that are still open.
+PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data) {
 
- Pa_Terminate() MUST be called before exiting a program which uses PortAudio.
- Failure to do so may result in serious resource leaks, such as audio devices
- not being available until the next reboot.
+	Ref<PortAudioStreamParameter> input_parameter = p_stream->get_input_stream_parameter();
+	const PaStreamParameters pa_input_parameter = {
+		input_parameter->get_device_index(),
+		input_parameter->get_channel_count(),
+		input_parameter->get_sample_format(),
+		input_parameter->get_suggested_latency(),
+		input_parameter->get_host_api_specific_stream_info(),
+	};
 
- @return paNoError if successful, otherwise an error code indicating the cause
- of failure.
- 
- @see Pa_Initialize
-*/
-PortAudio::PortAudioError PortAudio::terminate() {
-	PaError err = Pa_Terminate();
-	return get_error(err);
-}
+	Ref<PortAudioStreamParameter> output_parameter = p_stream->get_output_stream_parameter();
+	const PaStreamParameters pa_output_parameter = {
+		output_parameter->get_device_index(),
+		output_parameter->get_channel_count(),
+		output_parameter->get_sample_format(),
+		output_parameter->get_suggested_latency(),
+		output_parameter->get_host_api_specific_stream_info(),
+	};
 
-PortAudio::PortAudioError PortAudio::open_default_stream(void **p_stream, int p_input_channel_count,
-		int p_output_channel_count, double p_sample_rate, unsigned long p_frames_per_buffer,
-		AudioCallback *p_audio_callback, void *p_user_data) {
 	// TODO delete(p_audio_callback) - maybe add to list & add finished flag and clean up periodically
 	PaCallbackUserData *user_data = new PaCallbackUserData();
 	user_data->port_audio = this;
 	user_data->audio_callback = p_audio_callback;
 	user_data->audio_callback_user_data = p_user_data;
-	PaError err = Pa_OpenDefaultStream(p_stream,
-			p_input_channel_count,
-			p_output_channel_count,
-			paFloat32,
-			p_sample_rate,
-			p_frames_per_buffer,
+	user_data->output_buffer.resize(output_buffer_size);
+
+	PaStream *stream;
+	PaError err = Pa_OpenStream(&stream,
+			&pa_input_parameter,
+			&pa_output_parameter,
+			p_stream->get_sample_rate(),
+			p_stream->get_frames_per_buffer(),
+			p_stream->get_stream_flags(),
 			&port_audio_callback_converter,
 			user_data);
+	if (err == PaErrorCode::paNoError) {
+		p_stream->set_stream(stream);
+	}
+	return get_error(err);
+}
+
+PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data) {
+
+	PaCallbackUserData *user_data = new PaCallbackUserData();
+	user_data->port_audio = this;
+	user_data->audio_callback = p_audio_callback;
+	user_data->audio_callback_user_data = p_user_data;
+	user_data->output_buffer.resize(output_buffer_size);
+
+	PaStream *stream;
+	PaError err = Pa_OpenDefaultStream(&stream,
+			p_stream->get_input_channel_count(),
+			p_stream->get_output_channel_count(),
+			paFloat32,
+			p_stream->get_sample_rate(),
+			p_stream->get_frames_per_buffer(),
+			&port_audio_callback_converter,
+			user_data);
+	if (err == PaErrorCode::paNoError) {
+		p_stream->set_stream(stream);
+	}
 	return get_error(err);
 }
 
 /**
 Commences audio processing.
 */
-PortAudio::PortAudioError PortAudio::start_stream(void *p_stream) {
-	PaError err = Pa_StartStream(p_stream);
+PortAudio::PortAudioError PortAudio::start_stream(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_StartStream(stream);
 	return get_error(err);
 }
 
@@ -435,24 +502,27 @@ PortAudio::PortAudioError PortAudio::start_stream(void *p_stream) {
 Terminates audio processing. It waits until all pending
  audio buffers have been played before it returns.
 */
-PortAudio::PortAudioError PortAudio::stop_stream(void *p_stream) {
-	PaError err = Pa_StopStream(p_stream);
+PortAudio::PortAudioError PortAudio::stop_stream(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_StopStream(stream);
 	return get_error(err);
 }
 
 /** Terminates audio processing immediately without waiting for pending
  buffers to complete.
 */
-PortAudio::PortAudioError PortAudio::abort_stream(void *p_stream) {
-	PaError err = Pa_AbortStream(p_stream);
+PortAudio::PortAudioError PortAudio::abort_stream(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_AbortStream(stream);
 	return get_error(err);
 }
 
 /** Closes an audio stream. If the audio stream is active it
  discards any pending buffers as if Pa_AbortStream() had been called.
 */
-PortAudio::PortAudioError PortAudio::close_stream(void *p_stream) {
-	PaError err = Pa_CloseStream(p_stream);
+PortAudio::PortAudioError PortAudio::close_stream(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_CloseStream(stream);
 	return get_error(err);
 }
 
@@ -468,8 +538,9 @@ PortAudio::PortAudioError PortAudio::close_stream(void *p_stream) {
 
  @see Pa_StopStream, Pa_AbortStream, Pa_IsStreamActive
 */
-PortAudio::PortAudioError PortAudio::is_stream_stopped(void *p_stream) {
-	PaError err = Pa_IsStreamStopped(p_stream);
+PortAudio::PortAudioError PortAudio::is_stream_stopped(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_IsStreamStopped(stream);
 	return get_error(err);
 }
 
@@ -486,8 +557,9 @@ PortAudio::PortAudioError PortAudio::is_stream_stopped(void *p_stream) {
 
  @see Pa_StopStream, Pa_AbortStream, Pa_IsStreamStopped
 */
-PortAudio::PortAudioError PortAudio::is_stream_active(void *p_stream) {
-	PaError err = Pa_IsStreamActive(p_stream);
+PortAudio::PortAudioError PortAudio::is_stream_active(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_IsStreamActive(stream);
 	return get_error(err);
 }
 
@@ -506,8 +578,9 @@ PortAudio::PortAudioError PortAudio::is_stream_active(void *p_stream) {
 
  @see PaTime, PaStreamCallback, PaStreamCallbackTimeInfo
 */
-double PortAudio::get_stream_time(void *p_stream) {
-	PaTime time = Pa_GetStreamTime(p_stream);
+double PortAudio::get_stream_time(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaTime time = Pa_GetStreamTime(stream);
 	return time;
 }
 
@@ -524,8 +597,9 @@ double PortAudio::get_stream_time(void *p_stream) {
 
  @see PaStreamInfo
 */
-Dictionary PortAudio::get_stream_info(void *p_stream) {
-	const PaStreamInfo *pa_stream_info = Pa_GetStreamInfo(p_stream);
+Dictionary PortAudio::get_stream_info(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	const PaStreamInfo *pa_stream_info = Pa_GetStreamInfo(stream);
 
 	Dictionary stream_info;
 	/** this is struct version 1 */
@@ -559,8 +633,9 @@ Dictionary PortAudio::get_stream_info(void *p_stream) {
 	return stream_info;
 }
 
-double PortAudio::get_stream_cpu_load(void *p_stream) {
-	return Pa_GetStreamCpuLoad(p_stream);
+double PortAudio::get_stream_cpu_load(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	return Pa_GetStreamCpuLoad(stream);
 }
 
 /** Put the caller to sleep for at least 'msec' milliseconds. This function is
@@ -574,6 +649,14 @@ void PortAudio::sleep(unsigned int p_ms) {
 	Pa_Sleep(p_ms);
 }
 
+int PortAudio::get_output_buffer_size() {
+	return output_buffer_size;
+}
+
+void PortAudio::set_output_buffer_size(int p_output_buffer_size) {
+	output_buffer_size = p_output_buffer_size;
+}
+
 void PortAudio::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("version"), &PortAudio::get_version);
 	ClassDB::bind_method(D_METHOD("version_text"), &PortAudio::get_version_text);
@@ -581,6 +664,7 @@ void PortAudio::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("terminate"), &PortAudio::terminate);
 	ClassDB::bind_method(D_METHOD("sleep", "ms"), &PortAudio::sleep);
 
+	// PortAudioError
 	BIND_ENUM_CONSTANT(UNDEFINED);
 	BIND_ENUM_CONSTANT(NOT_PORT_AUDIO_NODE);
 
@@ -618,6 +702,7 @@ void PortAudio::_bind_methods() {
 
 PortAudio::PortAudio() {
 	singleton = this;
+	output_buffer_size = 1024;
 	PortAudio::PortAudioError err = initialize();
 	if (err != PortAudio::PortAudioError::NO_ERROR) {
 		print_error(vformat("PortAudio::PortAudio: failed to initialize (%d)", err));

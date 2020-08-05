@@ -1,6 +1,8 @@
 #include "register_types.h"
 
 #include "./port_audio.h"
+#include "./port_audio_stream.h"
+#include "./port_audio_stream_parameter.h"
 #include "./port_audio_node.h"
 #include "./port_audio_test_node.h"
 
@@ -17,6 +19,8 @@ void register_portaudio_types() {
 
 	// Classes
 	ClassDB::register_class<PortAudioNode>();
+	ClassDB::register_class<PortAudioStream>();
+	ClassDB::register_class<PortAudioStreamParameter>();
 	ClassDB::register_class<PortAudioTestNode>();
 }
 
