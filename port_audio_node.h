@@ -19,6 +19,8 @@ private:
 
 protected:
 	static void _bind_methods();
+
+	// TODO Godot does not support binding unsigned long
 	int audio_callback(const PoolByteArray p_input_buffer, PoolByteArray p_output_buffer,
 			int p_frames_per_buffer, Dictionary p_time_info, int p_status_flags);
 

@@ -17,6 +17,22 @@ public:
 			unsigned long p_status_flags,
 			void *user_data);
 
+	/** Functions of type PaStreamFinishedCallback are implemented by PortAudio 
+ clients. They can be registered with a stream using the Pa_SetStreamFinishedCallback
+ function. Once registered they are called when the stream becomes inactive
+ (ie once a call to Pa_StopStream() will not block).
+ A stream will become inactive after the stream callback returns non-zero,
+ or when Pa_StopStream or Pa_AbortStream is called. For a stream providing audio
+ output, if the stream callback returns paComplete, or Pa_StopStream() is called,
+ the stream finished callback will not be called until all generated sample data
+ has been played.
+ 
+ @param userData The userData parameter supplied to Pa_OpenStream()
+
+ @see Pa_SetStreamFinishedCallback
+*/
+	typedef void StreamFinishedCallback(void *userData);
+
 	enum PortAudioError {
 		// Custom Error
 		UNDEFINED = -1,
@@ -54,11 +70,21 @@ public:
 		BAD_BUFFER_PTR
 	};
 
+	enum PortAudioSampleFormat {
+		FLOAT_32 = 0x00000001,
+		INT_32 = 0x00000002,
+		INT_24 = 0x00000004,
+		INT_16 = 0x00000008,
+		INT_8 = 0x00000010,
+		U_INT_8 = 0x00000020,
+		CUSTOM_FORMAT = 0x00010000,
+		NON_INTERLEAVED = 0x80000000,
+	};
+
 private:
 	static PortAudio *singleton;
 
 	int output_buffer_size;
-
 
 protected:
 	static void _bind_methods();
@@ -68,7 +94,7 @@ public:
 
 	int get_version();
 	String get_version_text();
-	// Pa_GetVersionInfo
+	Dictionary get_version_info();
 	String get_error_text(PortAudio::PortAudioError p_error);
 	PortAudio::PortAudioError initialize();
 	PortAudio::PortAudioError terminate();
@@ -77,7 +103,7 @@ public:
 	Dictionary get_host_api_info(int p_host_api);
 	int host_api_type_id_to_host_api_index(int p_host_api_type_id);
 	int host_api_device_index_to_device_index(int p_host_api, int p_host_api_device_index);
-	// Pa_GetLastHostErrorInfo
+	Dictionary get_last_host_error_info();
 	int get_device_count();
 	int get_default_input_device();
 	int get_default_output_device();
@@ -86,7 +112,7 @@ public:
 	PortAudio::PortAudioError open_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data);
 	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data);
 	PortAudio::PortAudioError close_stream(Ref<PortAudioStream> p_stream);
-	//Pa_SetStreamFinishedCallback
+	PortAudio::PortAudioError set_stream_finished_callback(Ref<PortAudioStream> p_stream, StreamFinishedCallback *p_stream_finished_callback);
 	PortAudio::PortAudioError start_stream(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError stop_stream(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError abort_stream(Ref<PortAudioStream> p_stream);
@@ -95,11 +121,14 @@ public:
 	Dictionary get_stream_info(Ref<PortAudioStream> p_stream);
 	double get_stream_time(Ref<PortAudioStream> p_stream);
 	double get_stream_cpu_load(Ref<PortAudioStream> p_stream);
-	// Pa_ReadStream
-	// Pa_WriteStream
-	// Pa_GetStreamReadAvailable
-	// Pa_GetStreamWriteAvailable
-	// Pa_GetSampleSize
+
+	// TODO gotot types
+	PortAudio::PortAudioError read_stream(Ref<PortAudioStream> p_stream, void *p_buffer, unsigned long p_frames);
+	PortAudio::PortAudioError write_stream(Ref<PortAudioStream> p_stream, void *p_buffer, unsigned long p_frames);
+	signed long get_stream_read_available(Ref<PortAudioStream> p_stream);
+	signed long get_stream_write_available(Ref<PortAudioStream> p_stream);
+
+	PortAudio::PortAudioError get_sample_size(PortAudioSampleFormat p_sample_format);
 	void sleep(unsigned int p_ms);
 
 	int get_output_buffer_size();
@@ -110,5 +139,6 @@ public:
 };
 
 VARIANT_ENUM_CAST(PortAudio::PortAudioError);
+VARIANT_ENUM_CAST(PortAudio::PortAudioSampleFormat);
 
 #endif

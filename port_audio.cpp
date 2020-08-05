@@ -123,10 +123,36 @@ static PortAudio::PortAudioError get_error(PaError p_error) {
 		case paBadBufferPtr:
 			return PortAudio::PortAudioError::BAD_BUFFER_PTR;
 	}
-	print_error(vformat("PortAudio::get_error: UNDEFINED error code: %d", p_error));
+	if (p_error > 0) {
+		// not an error but a return value.
+		return (PortAudio::PortAudioError)p_error;
+	}
+	print_error(vformat("PortAudio::get_error: undefined error code: %d", p_error));
 	return PortAudio::PortAudioError::UNDEFINED;
 }
 
+static PaSampleFormat get_sample_format(PortAudio::PortAudioSampleFormat p_sample_format) {
+	switch (p_sample_format) {
+		case PortAudio::PortAudioSampleFormat::FLOAT_32:
+			return paFloat32;
+		case PortAudio::PortAudioSampleFormat::INT_32:
+			return paInt32;
+		case PortAudio::PortAudioSampleFormat::INT_24:
+			return paInt24;
+		case PortAudio::PortAudioSampleFormat::INT_16:
+			return paInt16;
+		case PortAudio::PortAudioSampleFormat::INT_8:
+			return paInt8;
+		case PortAudio::PortAudioSampleFormat::U_INT_8:
+			return paUInt8;
+		case PortAudio::PortAudioSampleFormat::CUSTOM_FORMAT:
+			return paCustomFormat;
+		case PortAudio::PortAudioSampleFormat::NON_INTERLEAVED:
+			return paNonInterleaved;
+	}
+	print_error(vformat("PortAudio::get_sample_format: undefined sample_format code: %d", p_sample_format));
+	return paFloat32;
+}
 #pragma endregion IMP_DETAILS
 
 PortAudio *PortAudio::singleton = NULL;
@@ -155,6 +181,26 @@ String PortAudio::get_version_text() {
 	return String(Pa_GetVersionText());
 }
 
+/** Retrieve version information for the currently running PortAudio build.
+ @return A pointer to an immutable PaVersionInfo structure.
+
+ @note This function can be called at any time. It does not require PortAudio
+ to be initialized. The structure pointed to is statically allocated. Do not
+ attempt to free it or modify it.
+
+ @see PaVersionInfo, paMakeVersionNumber
+ @version Available as of 19.5.0.
+*/
+Dictionary PortAudio::get_version_info() {
+	const PaVersionInfo *pa_version_info = Pa_GetVersionInfo();
+	Dictionary version_info;
+	version_info["version_major"] = pa_version_info->versionMajor;
+	version_info["version_minor"] = pa_version_info->versionMinor;
+	version_info["version_sub_minor"] = pa_version_info->versionSubMinor;
+	version_info["version_control_revision"] = pa_version_info->versionControlRevision;
+	version_info["version_text"] = pa_version_info->versionText;
+	return version_info;
+}
 /**
  * Translate the supplied PortAudio error code into a human readable message.
 */
@@ -329,6 +375,31 @@ int PortAudio::host_api_type_id_to_host_api_index(int p_host_api_type_id) {
 */
 int PortAudio::host_api_device_index_to_device_index(int p_host_api, int p_host_api_device_index) {
 	return Pa_HostApiDeviceIndexToDeviceIndex(p_host_api, p_host_api_device_index);
+}
+
+/** Return information about the last host error encountered. The error
+ information returned by Pa_GetLastHostErrorInfo() will never be modified
+ asynchronously by errors occurring in other PortAudio owned threads
+ (such as the thread that manages the stream callback.)
+
+ This function is provided as a last resort, primarily to enhance debugging
+ by providing clients with access to all available error information.
+
+ @return A pointer to an immutable structure constraining information about
+ the host error. The values in this structure will only be valid if a
+ PortAudio function has previously returned the paUnanticipatedHostError
+ error code.
+*/
+Dictionary PortAudio::get_last_host_error_info() {
+	const PaHostErrorInfo *pa_host_error_info = Pa_GetLastHostErrorInfo();
+	Dictionary host_error_info;
+	/**< the host API which returned the error code */
+	host_error_info["host_api_type"] = (int)pa_host_error_info->hostApiType;
+	/**< the error code returned */
+	host_error_info["error_code"] = pa_host_error_info->errorCode;
+	/**< a textual description of the error if available, otherwise a zero-length string */
+	host_error_info["error_text"] = String(pa_host_error_info->errorText);
+	return host_error_info;
 }
 
 /* Device enumeration and capabilities */
@@ -526,6 +597,30 @@ PortAudio::PortAudioError PortAudio::close_stream(Ref<PortAudioStream> p_stream)
 	return get_error(err);
 }
 
+/** Register a stream finished callback function which will be called when the 
+ stream becomes inactive. See the description of PaStreamFinishedCallback for 
+ further details about when the callback will be called.
+
+ @param stream a pointer to a PaStream that is in the stopped state - if the
+ stream is not stopped, the stream's finished callback will remain unchanged 
+ and an error code will be returned.
+
+ @param streamFinishedCallback a pointer to a function with the same signature
+ as PaStreamFinishedCallback, that will be called when the stream becomes
+ inactive. Passing NULL for this parameter will un-register a previously
+ registered stream finished callback function.
+
+ @return on success returns paNoError, otherwise an error code indicating the cause
+ of the error.
+
+ @see PaStreamFinishedCallback
+*/
+PortAudio::PortAudioError PortAudio::set_stream_finished_callback(Ref<PortAudioStream> p_stream, StreamFinishedCallback *p_stream_finished_callback) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_SetStreamFinishedCallback(stream, p_stream_finished_callback);
+	return get_error(err);
+}
+
 /** Determine whether the stream is stopped.
  A stream is considered to be stopped prior to a successful call to
  Pa_StartStream and after a successful call to Pa_StopStream or Pa_AbortStream.
@@ -638,6 +733,100 @@ double PortAudio::get_stream_cpu_load(Ref<PortAudioStream> p_stream) {
 	return Pa_GetStreamCpuLoad(stream);
 }
 
+/** Read samples from an input stream. The function doesn't return until
+ the entire buffer has been filled - this may involve waiting for the operating
+ system to supply the data.
+
+ @param stream A pointer to an open stream previously created with Pa_OpenStream.
+ 
+ @param buffer A pointer to a buffer of sample frames. The buffer contains
+ samples in the format specified by the inputParameters->sampleFormat field
+ used to open the stream, and the number of channels specified by
+ inputParameters->numChannels. If non-interleaved samples were requested using
+ the paNonInterleaved sample format flag, buffer is a pointer to the first element 
+ of an array of buffer pointers, one non-interleaved buffer for each channel.
+
+ @param frames The number of frames to be read into buffer. This parameter
+ is not constrained to a specific range, however high performance applications
+ will want to match this parameter to the framesPerBuffer parameter used
+ when opening the stream.
+
+ @return On success PaNoError will be returned, or PaInputOverflowed if input
+ data was discarded by PortAudio after the previous call and before this call.
+*/
+PortAudio::PortAudioError PortAudio::read_stream(Ref<PortAudioStream> p_stream, void *buffer, unsigned long frames) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_ReadStream(stream, buffer, frames);
+	return get_error(err);
+}
+
+/** Write samples to an output stream. This function doesn't return until the
+ entire buffer has been written - this may involve waiting for the operating
+ system to consume the data.
+
+ @param stream A pointer to an open stream previously created with Pa_OpenStream.
+
+ @param buffer A pointer to a buffer of sample frames. The buffer contains
+ samples in the format specified by the outputParameters->sampleFormat field
+ used to open the stream, and the number of channels specified by
+ outputParameters->numChannels. If non-interleaved samples were requested using
+ the paNonInterleaved sample format flag, buffer is a pointer to the first element 
+ of an array of buffer pointers, one non-interleaved buffer for each channel.
+
+ @param frames The number of frames to be written from buffer. This parameter
+ is not constrained to a specific range, however high performance applications
+ will want to match this parameter to the framesPerBuffer parameter used
+ when opening the stream.
+
+ @return On success PaNoError will be returned, or paOutputUnderflowed if
+ additional output data was inserted after the previous call and before this
+ call.
+*/
+PortAudio::PortAudioError PortAudio::write_stream(Ref<PortAudioStream> p_stream, void *buffer, unsigned long frames) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	PaError err = Pa_WriteStream(stream, buffer, frames);
+	return get_error(err);
+}
+
+/** Retrieve the number of frames that can be read from the stream without
+ waiting.
+
+ @return Returns a non-negative value representing the maximum number of frames
+ that can be read from the stream without blocking or busy waiting or, a
+ PaErrorCode (which are always negative) if PortAudio is not initialized or an
+ error is encountered.
+*/
+signed long PortAudio::get_stream_read_available(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	signed long available = Pa_GetStreamReadAvailable(stream);
+	return available;
+}
+
+/** Retrieve the number of frames that can be written to the stream without
+ waiting.
+
+ @return Returns a non-negative value representing the maximum number of frames
+ that can be written to the stream without blocking or busy waiting or, a
+ PaErrorCode (which are always negative) if PortAudio is not initialized or an
+ error is encountered.
+*/
+signed long PortAudio::get_stream_write_available(Ref<PortAudioStream> p_stream) {
+	PaStream *stream = (PaStream *)p_stream->get_stream();
+	signed long available = Pa_GetStreamWriteAvailable(stream);
+	return available;
+}
+
+/** Retrieve the size of a given sample format in bytes.
+
+ @return The size in bytes of a single sample in the specified format,
+ or paSampleFormatNotSupported if the format is not supported.
+*/
+PortAudio::PortAudioError PortAudio::get_sample_size(PortAudio::PortAudioSampleFormat p_sample_format) {
+	PaSampleFormat pa_sample_format = get_sample_format(p_sample_format);
+	PaError err = Pa_GetSampleSize(pa_sample_format);
+	return get_error(err);
+}
+
 /** Put the caller to sleep for at least 'msec' milliseconds. This function is
  provided only as a convenience for authors of portable code (such as the tests
  and examples in the PortAudio distribution.)
@@ -658,11 +847,45 @@ void PortAudio::set_output_buffer_size(int p_output_buffer_size) {
 }
 
 void PortAudio::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("version"), &PortAudio::get_version);
-	ClassDB::bind_method(D_METHOD("version_text"), &PortAudio::get_version_text);
+	ClassDB::bind_method(D_METHOD("get_version"), &PortAudio::get_version);
+	ClassDB::bind_method(D_METHOD("get_version_text"), &PortAudio::get_version_text);
+	ClassDB::bind_method(D_METHOD("get_version_info"), &PortAudio::get_version_info);
+	ClassDB::bind_method(D_METHOD("get_error_text", "error"), &PortAudio::get_error_text);
 	ClassDB::bind_method(D_METHOD("initialize"), &PortAudio::initialize);
 	ClassDB::bind_method(D_METHOD("terminate"), &PortAudio::terminate);
+	ClassDB::bind_method(D_METHOD("get_host_api_count"), &PortAudio::get_host_api_count);
+	ClassDB::bind_method(D_METHOD("get_default_host_api"), &PortAudio::get_default_host_api);
+	ClassDB::bind_method(D_METHOD("get_host_api_info", "host_api"), &PortAudio::get_host_api_info);
+	ClassDB::bind_method(D_METHOD("host_api_type_id_to_host_api_index", "host_api_type_id"), &PortAudio::host_api_type_id_to_host_api_index);
+	ClassDB::bind_method(D_METHOD("host_api_device_index_to_device_index", "host_api", "host_api_device_index"), &PortAudio::host_api_device_index_to_device_index);
+	ClassDB::bind_method(D_METHOD("get_last_host_error_info"), &PortAudio::get_last_host_error_info);
+	ClassDB::bind_method(D_METHOD("get_device_count"), &PortAudio::get_device_count);
+	ClassDB::bind_method(D_METHOD("get_default_input_device"), &PortAudio::get_default_input_device);
+	ClassDB::bind_method(D_METHOD("get_default_output_device"), &PortAudio::get_default_output_device);
+	ClassDB::bind_method(D_METHOD("get_device_info", "device_index"), &PortAudio::get_device_info);
+	ClassDB::bind_method(D_METHOD("is_format_supported", "input_stream_parameter", "output_stream_parameter", "sample_rate"), &PortAudio::is_format_supported);
+	//ClassDB::bind_method(D_METHOD("open_stream", "stream", "audio_callback", "user_data"), &PortAudio::open_stream);
+	//ClassDB::bind_method(D_METHOD("open_default_stream", "stream", "audio_callback", "user_data"), &PortAudio::open_default_stream);
+	ClassDB::bind_method(D_METHOD("close_stream", "stream"), &PortAudio::close_stream);
+	//ClassDB::bind_method(D_METHOD("set_stream_finished_callback", "stream", "stream_finished_callback"), &PortAudio::set_stream_finished_callback);
+	ClassDB::bind_method(D_METHOD("start_stream", "stream"), &PortAudio::start_stream);
+	ClassDB::bind_method(D_METHOD("stop_stream", "stream"), &PortAudio::stop_stream);
+	ClassDB::bind_method(D_METHOD("abort_stream", "stream"), &PortAudio::abort_stream);
+	ClassDB::bind_method(D_METHOD("is_stream_stopped", "stream"), &PortAudio::is_stream_stopped);
+	ClassDB::bind_method(D_METHOD("is_stream_active", "stream"), &PortAudio::is_stream_active);
+	ClassDB::bind_method(D_METHOD("get_stream_info", "stream"), &PortAudio::get_stream_info);
+	ClassDB::bind_method(D_METHOD("get_stream_time", "stream"), &PortAudio::get_stream_time);
+	ClassDB::bind_method(D_METHOD("get_stream_cpu_load", "stream"), &PortAudio::get_stream_cpu_load);
+	//ClassDB::bind_method(D_METHOD("read_stream", "stream", "buffer", "frames"), &PortAudio::read_stream);
+	//ClassDB::bind_method(D_METHOD("write_stream", "stream", "buffer", "frames"), &PortAudio::write_stream);
+	//ClassDB::bind_method(D_METHOD("get_stream_read_available", "stream"), &PortAudio::get_stream_read_available);
+	//ClassDB::bind_method(D_METHOD("get_stream_write_available", "stream"), &PortAudio::get_stream_write_available);
+	ClassDB::bind_method(D_METHOD("get_sample_size", "sample_format"), &PortAudio::get_sample_size);
 	ClassDB::bind_method(D_METHOD("sleep", "ms"), &PortAudio::sleep);
+
+	// TODO understand port audio better and frames_per_buffer parameter, if it is the same can be combined.
+	ClassDB::bind_method(D_METHOD("get_output_buffer_size"), &PortAudio::get_output_buffer_size);
+	ClassDB::bind_method(D_METHOD("set_output_buffer_size", "output_buffer_size"), &PortAudio::set_output_buffer_size);
 
 	// PortAudioError
 	BIND_ENUM_CONSTANT(UNDEFINED);
@@ -698,6 +921,16 @@ void PortAudio::_bind_methods() {
 	BIND_ENUM_CONSTANT(CAN_NOT_WRITE_TO_AN_INPUT_ONLY_STREAM);
 	BIND_ENUM_CONSTANT(INCOMPATIBLE_STREAM_HOST_API);
 	BIND_ENUM_CONSTANT(BAD_BUFFER_PTR);
+
+	// PortAudioSampleSize
+	BIND_ENUM_CONSTANT(FLOAT_32);
+	BIND_ENUM_CONSTANT(INT_32);
+	BIND_ENUM_CONSTANT(INT_24);
+	BIND_ENUM_CONSTANT(INT_16);
+	BIND_ENUM_CONSTANT(INT_8);
+	BIND_ENUM_CONSTANT(U_INT_8);
+	BIND_ENUM_CONSTANT(CUSTOM_FORMAT);
+	BIND_ENUM_CONSTANT(NON_INTERLEAVED);
 }
 
 PortAudio::PortAudio() {
