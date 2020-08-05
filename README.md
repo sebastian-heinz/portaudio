@@ -57,17 +57,21 @@ However the AudioCallback is exposed an can be overwritten in GDScript:
 ```
 extends PortAudioNode
 
-# Called when the node enters the scene tree for the first time.
 func _ready():
 	var err = open_default_stream()
 	if(err != PortAudio.NO_ERROR):
 		push_error("open_default_stream: %s" % err)
 		return;
-	start_stream()
-  
+		
+	err = start_stream()	
+	if(err != PortAudio.NO_ERROR):
+		push_error("start_stream: %s" % err)
+		return;
+		
 # PortAudio "Audio Callback". - Overwrite it to pass the audio data to the outbut buffer.
 func audio_callback(input_buffer : PoolByteArray, output_buffer : PoolByteArray, frames_per_buffer : int, time_info : Dictionary, status_flags : int):
-	output_buffer.append(5)
+	for i in range (output_buffer.size()):
+		output_buffer.set(i, i)
 	return 0
 ```
 
