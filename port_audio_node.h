@@ -12,17 +12,15 @@ class PortAudioNode : public Node {
 
 private:
 	static int node_audio_callback(const PoolVector<uint8_t> &p_input_buffer, PoolVector<uint8_t> &p_output_buffer,
-			unsigned long p_frames_per_buffer, Dictionary p_time_info,
-			unsigned long p_status_flags, void *p_user_data);
+		uint64_t p_frames_per_buffer, Dictionary p_time_info, uint64_t p_status_flags, void *p_user_data);
 
 	Ref<PortAudioStream> stream;
 
 protected:
 	static void _bind_methods();
 
-	// TODO Godot does not support binding unsigned long
 	int audio_callback(const PoolByteArray p_input_buffer, PoolByteArray p_output_buffer,
-			int p_frames_per_buffer, Dictionary p_time_info, int p_status_flags);
+		uint64_t p_frames_per_buffer, Dictionary p_time_info, uint64_t p_status_flags);
 
 public:
 	PortAudio::PortAudioError open_default_stream();

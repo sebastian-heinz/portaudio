@@ -1,8 +1,7 @@
 #include "port_audio_node.h"
 
 int PortAudioNode::node_audio_callback(const PoolVector<uint8_t> &p_input_buffer, PoolVector<uint8_t> &p_output_buffer,
-		unsigned long p_frames_per_buffer, Dictionary p_time_info,
-		unsigned long p_status_flags, void *p_user_data) {
+		uint64_t p_frames_per_buffer, Dictionary p_time_info, uint64_t p_status_flags, void *p_user_data) {
 	PortAudioNode *port_audio_node = (PortAudioNode *)p_user_data;
 	if (!port_audio_node) {
 		print_line("PortAudioNode::node_audio_callback: !port_audio_node");
@@ -12,13 +11,11 @@ int PortAudioNode::node_audio_callback(const PoolVector<uint8_t> &p_input_buffer
 }
 
 PortAudio::PortAudioError PortAudioNode::open_default_stream() {
-	PortAudio::PortAudioError err = PortAudio::get_singleton()->open_default_stream(stream, &PortAudioNode::node_audio_callback, this);
-	return err;
+	return PortAudio::get_singleton()->open_default_stream(stream, &PortAudioNode::node_audio_callback, this);
 }
 
 PortAudio::PortAudioError PortAudioNode::open_stream() {
-	PortAudio::PortAudioError err = PortAudio::get_singleton()->open_stream(stream, &PortAudioNode::node_audio_callback, this);
-	return err;
+	return PortAudio::get_singleton()->open_stream(stream, &PortAudioNode::node_audio_callback, this);
 }
 
 PortAudio::PortAudioError PortAudioNode::start_stream() {
@@ -67,7 +64,8 @@ void PortAudioNode::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "stream", PROPERTY_HINT_RESOURCE_TYPE, "PortAudioStream"), "set_stream", "get_stream");
 }
 
-int PortAudioNode::audio_callback(const PoolByteArray p_input_buffer, PoolByteArray p_output_buffer, int p_frames_per_buffer, Dictionary p_time_info, int p_status_flags) {
+int PortAudioNode::audio_callback(const PoolByteArray p_input_buffer, PoolByteArray p_output_buffer,
+		uint64_t p_frames_per_buffer, Dictionary p_time_info, uint64_t p_status_flags) {
 	return 0;
 }
 

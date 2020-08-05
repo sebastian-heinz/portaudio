@@ -22,6 +22,7 @@ use_host_api = [
 ]
 
 # Portaudio sources
+#env.Append(CPPDEFINES=["NEED_LONG_INT"])
 module_env.Append(CPPDEFINES=[('PA_GIT_REVISION', 'godot-module-396fe4b')])
 
 available_host_apis = []

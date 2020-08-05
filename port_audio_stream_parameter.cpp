@@ -16,21 +16,11 @@ int PortAudioStreamParameter::get_channel_count() {
 	return channel_count;
 }
 
-void PortAudioStreamParameter::set_sample_format(unsigned long p_sample_format) {
+void PortAudioStreamParameter::set_sample_format(uint64_t p_sample_format) {
 	sample_format = p_sample_format;
 }
 
-unsigned long PortAudioStreamParameter::get_sample_format() {
-	return sample_format;
-}
-
-void PortAudioStreamParameter::set_sample_format_bind(int p_sample_format) {
-	// TODO Godot does not support binding unsigned long
-	sample_format = p_sample_format;
-}
-
-int PortAudioStreamParameter::get_sample_format_bind() {
-	// TODO Godot does not support binding unsigned long
+uint64_t PortAudioStreamParameter::get_sample_format() {
 	return sample_format;
 }
 
@@ -55,8 +45,8 @@ void PortAudioStreamParameter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_device_index", "device_index"), &PortAudioStreamParameter::set_device_index);
 	ClassDB::bind_method(D_METHOD("get_channel_count"), &PortAudioStreamParameter::get_channel_count);
 	ClassDB::bind_method(D_METHOD("set_channel_count", "channel_count"), &PortAudioStreamParameter::set_channel_count);
-	ClassDB::bind_method(D_METHOD("get_sample_format"), &PortAudioStreamParameter::get_sample_format_bind);
-	ClassDB::bind_method(D_METHOD("set_sample_format", "sample_format"), &PortAudioStreamParameter::set_sample_format_bind);
+	ClassDB::bind_method(D_METHOD("get_sample_format"), &PortAudioStreamParameter::get_sample_format);
+	ClassDB::bind_method(D_METHOD("set_sample_format", "sample_format"), &PortAudioStreamParameter::set_sample_format);
 	ClassDB::bind_method(D_METHOD("get_suggested_latency"), &PortAudioStreamParameter::get_suggested_latency);
 	ClassDB::bind_method(D_METHOD("set_suggested_latency", "suggested_latency"), &PortAudioStreamParameter::set_suggested_latency);
 

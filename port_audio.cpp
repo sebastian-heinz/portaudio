@@ -396,7 +396,7 @@ Dictionary PortAudio::get_last_host_error_info() {
 	/**< the host API which returned the error code */
 	host_error_info["host_api_type"] = (int)pa_host_error_info->hostApiType;
 	/**< the error code returned */
-	host_error_info["error_code"] = pa_host_error_info->errorCode;
+	host_error_info["error_code"] = (int64_t)pa_host_error_info->errorCode;
 	/**< a textual description of the error if available, otherwise a zero-length string */
 	host_error_info["error_text"] = String(pa_host_error_info->errorText);
 	return host_error_info;
@@ -478,6 +478,7 @@ PortAudio::PortAudioError PortAudio::is_format_supported(Ref<PortAudioStreamPara
 	const PaStreamParameters pa_input_parameter = {
 		p_input_stream_parameter->get_device_index(),
 		p_input_stream_parameter->get_channel_count(),
+		// TODO warning C4838: conversion from 'uint64_t' to 'PaSampleFormat' requires a narrowing conversion
 		p_input_stream_parameter->get_sample_format(),
 		p_input_stream_parameter->get_suggested_latency(),
 		p_input_stream_parameter->get_host_api_specific_stream_info(),
@@ -486,6 +487,7 @@ PortAudio::PortAudioError PortAudio::is_format_supported(Ref<PortAudioStreamPara
 	const PaStreamParameters pa_output_parameter = {
 		p_output_stream_parameter->get_device_index(),
 		p_output_stream_parameter->get_channel_count(),
+		// TODO warning C4838 : conversion from 'uint64_t' to 'PaSampleFormat' requires a narrowing conversion
 		p_output_stream_parameter->get_sample_format(),
 		p_output_stream_parameter->get_suggested_latency(),
 		p_output_stream_parameter->get_host_api_specific_stream_info(),
@@ -501,6 +503,7 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	const PaStreamParameters pa_input_parameter = {
 		input_parameter->get_device_index(),
 		input_parameter->get_channel_count(),
+		// TODO warning C4838: conversion from 'uint64_t' to 'PaSampleFormat' requires a narrowing conversion
 		input_parameter->get_sample_format(),
 		input_parameter->get_suggested_latency(),
 		input_parameter->get_host_api_specific_stream_info(),
@@ -510,6 +513,7 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	const PaStreamParameters pa_output_parameter = {
 		output_parameter->get_device_index(),
 		output_parameter->get_channel_count(),
+		// TODO warning C4838: conversion from 'uint64_t' to 'PaSampleFormat' requires a narrowing conversion
 		output_parameter->get_sample_format(),
 		output_parameter->get_suggested_latency(),
 		output_parameter->get_host_api_specific_stream_info(),
@@ -754,9 +758,12 @@ double PortAudio::get_stream_cpu_load(Ref<PortAudioStream> p_stream) {
  @return On success PaNoError will be returned, or PaInputOverflowed if input
  data was discarded by PortAudio after the previous call and before this call.
 */
-PortAudio::PortAudioError PortAudio::read_stream(Ref<PortAudioStream> p_stream, void *buffer, unsigned long frames) {
+PortAudio::PortAudioError PortAudio::read_stream(Ref<PortAudioStream> p_stream, PoolVector<uint8_t> p_buffer, uint64_t p_frames) {
 	PaStream *stream = (PaStream *)p_stream->get_stream();
-	PaError err = Pa_ReadStream(stream, buffer, frames);
+	PoolVector<uint8_t>::Write buffer_write = p_buffer.write();
+	void *buffer = buffer_write.ptr();
+	PaError err = Pa_ReadStream(stream, buffer, p_frames);
+	buffer_write.release();
 	return get_error(err);
 }
 
@@ -782,9 +789,12 @@ PortAudio::PortAudioError PortAudio::read_stream(Ref<PortAudioStream> p_stream, 
  additional output data was inserted after the previous call and before this
  call.
 */
-PortAudio::PortAudioError PortAudio::write_stream(Ref<PortAudioStream> p_stream, void *buffer, unsigned long frames) {
+PortAudio::PortAudioError PortAudio::write_stream(Ref<PortAudioStream> p_stream, PoolVector<uint8_t> p_buffer, uint64_t p_frames) {
 	PaStream *stream = (PaStream *)p_stream->get_stream();
-	PaError err = Pa_WriteStream(stream, buffer, frames);
+	PoolVector<uint8_t>::Read buffer_read = p_buffer.read();
+	void *buffer = (void *)buffer_read.ptr();
+	PaError err = Pa_WriteStream(stream, buffer, p_frames);
+	buffer_read.release();
 	return get_error(err);
 }
 
@@ -796,7 +806,7 @@ PortAudio::PortAudioError PortAudio::write_stream(Ref<PortAudioStream> p_stream,
  PaErrorCode (which are always negative) if PortAudio is not initialized or an
  error is encountered.
 */
-signed long PortAudio::get_stream_read_available(Ref<PortAudioStream> p_stream) {
+int64_t PortAudio::get_stream_read_available(Ref<PortAudioStream> p_stream) {
 	PaStream *stream = (PaStream *)p_stream->get_stream();
 	signed long available = Pa_GetStreamReadAvailable(stream);
 	return available;
@@ -810,7 +820,7 @@ signed long PortAudio::get_stream_read_available(Ref<PortAudioStream> p_stream) 
  PaErrorCode (which are always negative) if PortAudio is not initialized or an
  error is encountered.
 */
-signed long PortAudio::get_stream_write_available(Ref<PortAudioStream> p_stream) {
+int64_t PortAudio::get_stream_write_available(Ref<PortAudioStream> p_stream) {
 	PaStream *stream = (PaStream *)p_stream->get_stream();
 	signed long available = Pa_GetStreamWriteAvailable(stream);
 	return available;
@@ -876,13 +886,12 @@ void PortAudio::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_stream_info", "stream"), &PortAudio::get_stream_info);
 	ClassDB::bind_method(D_METHOD("get_stream_time", "stream"), &PortAudio::get_stream_time);
 	ClassDB::bind_method(D_METHOD("get_stream_cpu_load", "stream"), &PortAudio::get_stream_cpu_load);
-	//ClassDB::bind_method(D_METHOD("read_stream", "stream", "buffer", "frames"), &PortAudio::read_stream);
-	//ClassDB::bind_method(D_METHOD("write_stream", "stream", "buffer", "frames"), &PortAudio::write_stream);
-	//ClassDB::bind_method(D_METHOD("get_stream_read_available", "stream"), &PortAudio::get_stream_read_available);
-	//ClassDB::bind_method(D_METHOD("get_stream_write_available", "stream"), &PortAudio::get_stream_write_available);
+	ClassDB::bind_method(D_METHOD("read_stream", "stream", "buffer", "frames"), &PortAudio::read_stream);
+	ClassDB::bind_method(D_METHOD("write_stream", "stream", "buffer", "frames"), &PortAudio::write_stream);
+	ClassDB::bind_method(D_METHOD("get_stream_read_available", "stream"), &PortAudio::get_stream_read_available);
+	ClassDB::bind_method(D_METHOD("get_stream_write_available", "stream"), &PortAudio::get_stream_write_available);
 	ClassDB::bind_method(D_METHOD("get_sample_size", "sample_format"), &PortAudio::get_sample_size);
 	ClassDB::bind_method(D_METHOD("sleep", "ms"), &PortAudio::sleep);
-
 	// TODO understand port audio better and frames_per_buffer parameter, if it is the same can be combined.
 	ClassDB::bind_method(D_METHOD("get_output_buffer_size"), &PortAudio::get_output_buffer_size);
 	ClassDB::bind_method(D_METHOD("set_output_buffer_size", "output_buffer_size"), &PortAudio::set_output_buffer_size);

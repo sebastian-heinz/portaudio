@@ -9,7 +9,7 @@ class PortAudioStreamParameter : public Resource {
 private:
 	int device_index;
 	int channel_count;
-	unsigned long sample_format;
+	uint64_t sample_format;
 	double suggested_latency;
 	void *host_api_specific_stream_info;
 
@@ -21,10 +21,8 @@ public:
 	int get_device_index();
 	void set_channel_count(int p_channel_count);
 	int get_channel_count();
-	void set_sample_format(unsigned long p_sample_format);
-	unsigned long get_sample_format();
-	void set_sample_format_bind(int p_sample_format);
-	int get_sample_format_bind();
+	void set_sample_format(uint64_t p_sample_format);
+	uint64_t get_sample_format();
 	void set_suggested_latency(double p_suggested_latency);
 	double get_suggested_latency();
 	void set_host_api_specific_stream_info(void *p_host_api_specific_stream_info);
