@@ -56,24 +56,27 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	Variant var_user_data = audio_callback_data;
 	const Variant *var_user_data_ptr = &var_user_data;
 
-	Array args;
-	args.resize(1);
-	args[0] = audio_callback_data;
-	Variant result = user_data->audio_callback->call_funcv(args);
+	Ref<StreamPeerBuffer> output_buffer = user_data->audio_callback_data->get_output_buffer();
+	output_buffer->seek(0);
 
-	//Variant result = user_data->audio_callback->call_func(&var_user_data_ptr, 1, call_error);
-	//if (call_error.error != Variant::CallError::CALL_OK) {
-	//	print_line(vformat("PortAudio::port_audio_callback_gd_binding_converter: call_error.error: %s", call_error.error));
-	//	return 0;
-	//}
 
-	// copy result
-	PoolVector<uint8_t> output_buffer = user_data->audio_callback_data->get_output_buffer();
-	PoolVector<uint8_t>::Read read_output_buffer = output_buffer.read();
-	const uint8_t *read_output_buffer_ptr = read_output_buffer.ptr();
-	copymem(p_output_buffer, read_output_buffer_ptr, output_buffer.size());
-	read_output_buffer.release();
-	return result;
+	Variant variant = audio_callback_data;
+	const Variant *variant_ptr = &variant;
+	const Variant **p_args = &variant_ptr;
+	Variant::CallError error;
+	// TODO investigate .. somehow causes memory corruption?
+	Variant result = user_data->audio_callback->call_func(p_args, 1, error);
+	if (error.error != Variant::CallError::CALL_OK) {
+		print_line("PortAudio::port_audio_callback_converter: != Variant::CallError::CALL_OK");
+	}
+
+	int pos = output_buffer->get_position();
+	output_buffer->seek(0);
+	int read;
+	uint8_t *ptr = (uint8_t *)p_output_buffer;
+	output_buffer->get_partial_data(ptr, pos, read);
+
+	return 0;
 }
 
 static void port_audio_stream_finished_callback_gd_binding_converter(void *p_user_data) {
@@ -354,7 +357,12 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	user_data->audio_callback = p_audio_callback;
 	user_data->audio_callback_data.instance();
 	user_data->audio_callback_data->set_user_data(p_user_data);
-	user_data->audio_callback_data->get_output_buffer_ptr()->resize(1024);
+
+	Ref<StreamPeerBuffer> output_buffer;
+	output_buffer.instance();
+	output_buffer->resize(1024);
+	user_data->audio_callback_data->set_output_buffer(output_buffer);
+
 	PaStream *stream;
 	PaError err = Pa_OpenStream(&stream,
 			pa_input_parameter_ptr,
@@ -405,7 +413,8 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
 	user_data->audio_callback = p_audio_callback;
 	user_data->audio_callback_data.instance();
 	user_data->audio_callback_data->set_user_data(p_user_data);
-	user_data->audio_callback_data->get_output_buffer_ptr()->resize(1024);
+	user_data->audio_callback_data->get_output_buffer().instance();
+	user_data->audio_callback_data->get_output_buffer()->resize(1024);
 
 	PaStream *stream;
 	PaError err = Pa_OpenDefaultStream(&stream,

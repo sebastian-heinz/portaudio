@@ -2,6 +2,7 @@
 #define PORT_AUDIO_CALLBACK_DATA_H
 
 #include <core/reference.h>
+#include <core/io/stream_peer.h>
 
 class PortAudioCallbackData : public Reference {
 	GDCLASS(PortAudioCallbackData, Reference);
@@ -10,7 +11,7 @@ private:
 	double input_buffer_adc_time;
 	double current_time;
 	double output_buffer_dac_time;
-	PoolVector<uint8_t> output_buffer;
+	Ref<StreamPeerBuffer> output_buffer;
 	PoolVector<uint8_t> input_buffer;
 	uint64_t frames_per_buffer;
 	uint64_t status_flags;
@@ -27,9 +28,8 @@ public:
 	void set_output_buffer_dac_time(double p_output_buffer_dac_time);
 	double get_output_buffer_dac_time();
 
-	void set_output_buffer(const PoolVector<uint8_t> &p_output_buffer);
-	PoolVector<uint8_t> get_output_buffer();
-	PoolVector<uint8_t> *get_output_buffer_ptr();
+	void set_output_buffer(const Ref<StreamPeerBuffer> &p_output_buffer);
+	Ref<StreamPeerBuffer> get_output_buffer();
 
 	void set_input_buffer(const PoolVector<uint8_t> &p_input_buffer);
 	PoolVector<uint8_t> get_input_buffer();
