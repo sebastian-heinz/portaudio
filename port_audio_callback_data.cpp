@@ -32,16 +32,12 @@ Ref<StreamPeerBuffer> PortAudioCallbackData::get_output_buffer() {
 	return output_buffer;
 }
 
-void PortAudioCallbackData::set_input_buffer(const PoolVector<uint8_t> &p_input_buffer) {
+void PortAudioCallbackData::set_input_buffer(const Ref<StreamPeerBuffer> &p_input_buffer) {
 	input_buffer = p_input_buffer;
 }
 
-PoolVector<uint8_t> PortAudioCallbackData::get_input_buffer() {
+Ref<StreamPeerBuffer> PortAudioCallbackData::get_input_buffer() {
 	return input_buffer;
-}
-
-PoolVector<uint8_t> *PortAudioCallbackData::get_input_buffer_ptr() {
-	return &input_buffer;
 }
 
 void PortAudioCallbackData::set_frames_per_buffer(uint64_t p_frames_per_buffer) {
@@ -92,7 +88,7 @@ PortAudioCallbackData::PortAudioCallbackData() {
 	current_time = 0;
 	output_buffer_dac_time = 0;
 	output_buffer = Ref<StreamPeerBuffer>();
-	input_buffer = PoolVector<uint8_t>();
+	input_buffer = Ref<StreamPeerBuffer>();
 	frames_per_buffer = 0;
 	status_flags = 0;
 	user_data = Variant();

@@ -31,17 +31,26 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 		print_line("PortAudio::port_audio_callback_converter: !user_data");
 		return 0;
 	}
-
+	// retrieve callback data
 	Ref<PortAudioCallbackData> audio_callback_data = user_data->audio_callback_data;
+	Ref<StreamPeerBuffer> input_buffer;
+	bool has_input = false;
+	if (p_input_buffer) {
+		input_buffer = user_data->audio_callback_data->get_input_buffer();
+		has_input = input_buffer.is_valid();
+	}
+	Ref<StreamPeerBuffer> output_buffer;
+	bool has_output = false;
+	if (p_output_buffer) {
+		output_buffer = user_data->audio_callback_data->get_output_buffer();
+		has_output = output_buffer.is_valid();
+	}
 
 	// copy input buffer to godot type, if available
-	if (p_input_buffer) {
-		PoolVector<uint8_t> input_buffer;
-		input_buffer.resize(p_frames_per_buffer); // TODO look for a solution withou allocating
-		PoolVector<uint8_t>::Write write_input_buffer = input_buffer.write();
-		uint8_t *write_input_buffer_ptr = write_input_buffer.ptr();
-		copymem(write_input_buffer_ptr, p_input_buffer, p_frames_per_buffer);
-		write_input_buffer.release();
+	if (has_input) {
+		input_buffer->seek(0);
+		uint8_t *input_buffer_ptr = (uint8_t *)p_input_buffer;
+		input_buffer->put_data(input_buffer_ptr, p_frames_per_buffer);
 	}
 
 	// provide params
@@ -51,8 +60,10 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	audio_callback_data->set_frames_per_buffer(p_frames_per_buffer);
 	audio_callback_data->set_status_flags(p_status_flags);
 
-	Ref<StreamPeerBuffer> output_buffer = user_data->audio_callback_data->get_output_buffer();
-	output_buffer->seek(0);
+	// set buffer to start
+	if (has_output) {
+		output_buffer->seek(0);
+	}
 
 	// perform callback
 	Variant variant = audio_callback_data;
@@ -65,16 +76,25 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	}
 
 	// write to output buffer
-	int pos = output_buffer->get_position();
-	if (pos > p_frames_per_buffer) {
-		print_line(vformat("PortAudio::port_audio_callback_converter: pos (%d) > p_frames_per_buffer (%d) - writing to much data per call", pos, (uint8_t)p_frames_per_buffer));
+	if (has_output) {
+		int bytes_written = output_buffer->get_position();
+		if (bytes_written > p_frames_per_buffer) {
+			print_line(vformat("PortAudio::port_audio_callback_converter: bytes_written (%d) > p_frames_per_buffer (%d) - data truncated", bytes_written, (uint8_t)p_frames_per_buffer));
+		}
+		output_buffer->seek(0);
+		int read;
+		uint8_t *output_buffer_ptr = (uint8_t *)p_output_buffer;
+		output_buffer->get_partial_data(output_buffer_ptr, p_frames_per_buffer, read);
 	}
-	output_buffer->seek(0);
-	int read;
-	uint8_t *ptr = (uint8_t *)p_output_buffer;
-	output_buffer->get_partial_data(ptr, p_frames_per_buffer, read);
 
-	return 0;
+	// evaluate callback result
+	int return_code = 0;
+	if (!result.get_type() == Variant::INT) {
+		print_line(vformat("PortAudio::port_audio_callback_converter: invalid return type: %s - returning 0", result.get_type()));
+	} else {
+		return_code = result;
+	}
+	return return_code;
 }
 
 static void port_audio_stream_finished_callback_gd_binding_converter(void *p_user_data) {
@@ -325,6 +345,13 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	if (!p_audio_callback->is_valid()) {
 		PortAudio::PortAudioError::INVALID_FUNC_REF;
 	}
+
+	CallbackUserDataGdBinding *user_data = new CallbackUserDataGdBinding();
+	user_data->port_audio = this;
+	user_data->audio_callback = p_audio_callback;
+	user_data->audio_callback_data.instance();
+	user_data->audio_callback_data->set_user_data(p_user_data);
+
 	const PaStreamParameters *pa_input_parameter_ptr = NULL;
 	Ref<PortAudioStreamParameter> input_parameter = p_stream->get_input_stream_parameter();
 	if (input_parameter.is_valid()) {
@@ -336,7 +363,12 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 			input_parameter->get_host_api_specific_stream_info(),
 		};
 		pa_input_parameter_ptr = &pa_input_parameter;
+		Ref<StreamPeerBuffer> input_buffer;
+		input_buffer.instance();
+		input_buffer->resize(p_stream->get_frames_per_buffer());
+		user_data->audio_callback_data->set_output_buffer(input_buffer);
 	}
+
 	const PaStreamParameters *pa_output_parameter_ptr = NULL;
 	Ref<PortAudioStreamParameter> output_parameter = p_stream->get_output_stream_parameter();
 	if (output_parameter.is_valid()) {
@@ -348,18 +380,11 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 			output_parameter->get_host_api_specific_stream_info(),
 		};
 		pa_output_parameter_ptr = &pa_output_parameter;
+		Ref<StreamPeerBuffer> output_buffer;
+		output_buffer.instance();
+		output_buffer->resize(p_stream->get_frames_per_buffer());
+		user_data->audio_callback_data->set_output_buffer(output_buffer);
 	}
-	// TODO delete(p_audio_callback) - maybe add to list & add finished flag and clean up periodically
-	CallbackUserDataGdBinding *user_data = new CallbackUserDataGdBinding();
-	user_data->port_audio = this;
-	user_data->audio_callback = p_audio_callback;
-	user_data->audio_callback_data.instance();
-	user_data->audio_callback_data->set_user_data(p_user_data);
-
-	Ref<StreamPeerBuffer> output_buffer;
-	output_buffer.instance();
-	output_buffer->resize(1024);
-	user_data->audio_callback_data->set_output_buffer(output_buffer);
 
 	PaStream *stream;
 	PaError err = Pa_OpenStream(&stream,
@@ -373,6 +398,8 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	if (err == PaErrorCode::paNoError) {
 		p_stream->set_stream(stream);
 		data_map.insert(std::pair<Ref<PortAudioStream>, void *>(p_stream, user_data));
+	} else {
+		delete user_data;
 	}
 	return get_error(err);
 }
@@ -381,38 +408,26 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
 	if (!p_audio_callback->is_valid()) {
 		PortAudio::PortAudioError::INVALID_FUNC_REF;
 	}
-	const PaStreamParameters *pa_input_parameter_ptr = NULL;
-	Ref<PortAudioStreamParameter> input_parameter = p_stream->get_input_stream_parameter();
-	if (input_parameter.is_valid()) {
-		const PaStreamParameters pa_input_parameter = {
-			input_parameter->get_device_index(),
-			input_parameter->get_channel_count(),
-			get_sample_format(input_parameter->get_sample_format()),
-			input_parameter->get_suggested_latency(),
-			input_parameter->get_host_api_specific_stream_info(),
-		};
-		pa_input_parameter_ptr = &pa_input_parameter;
-	}
-	const PaStreamParameters *pa_output_parameter_ptr = NULL;
-	Ref<PortAudioStreamParameter> output_parameter = p_stream->get_output_stream_parameter();
-	if (output_parameter.is_valid()) {
-		const PaStreamParameters pa_output_parameter = {
-			output_parameter->get_device_index(),
-			output_parameter->get_channel_count(),
-			get_sample_format(output_parameter->get_sample_format()),
-			output_parameter->get_suggested_latency(),
-			output_parameter->get_host_api_specific_stream_info(),
-		};
-		pa_output_parameter_ptr = &pa_output_parameter;
-	}
-	// TODO delete(p_audio_callback) - maybe add to list & add finished flag and clean up periodically
+
 	CallbackUserDataGdBinding *user_data = new CallbackUserDataGdBinding();
 	user_data->port_audio = this;
 	user_data->audio_callback = p_audio_callback;
 	user_data->audio_callback_data.instance();
 	user_data->audio_callback_data->set_user_data(p_user_data);
-	user_data->audio_callback_data->get_output_buffer().instance();
-	user_data->audio_callback_data->get_output_buffer()->resize(1024);
+
+	if (p_stream->get_input_channel_count() > 0) {
+		Ref<StreamPeerBuffer> input_buffer;
+		input_buffer.instance();
+		input_buffer->resize(p_stream->get_frames_per_buffer());
+		user_data->audio_callback_data->set_input_buffer(input_buffer);
+	}
+
+	if (p_stream->get_output_channel_count() > 0) {
+		Ref<StreamPeerBuffer> output_buffer;
+		output_buffer.instance();
+		output_buffer->resize(p_stream->get_frames_per_buffer());
+		user_data->audio_callback_data->set_output_buffer(output_buffer);
+	}
 
 	PaStream *stream;
 	PaError err = Pa_OpenDefaultStream(&stream,
@@ -450,6 +465,7 @@ PortAudio::PortAudioError PortAudio::abort_stream(Ref<PortAudioStream> p_stream)
 
 PortAudio::PortAudioError PortAudio::close_stream(Ref<PortAudioStream> p_stream) {
 	PaStream *stream = (PaStream *)p_stream->get_stream();
+	data_map.erase(p_stream);
 	PaError err = Pa_CloseStream(stream);
 	return get_error(err);
 }
