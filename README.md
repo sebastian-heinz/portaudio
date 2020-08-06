@@ -58,12 +58,15 @@ func _ready():
 	return
 
 func port_audio():
-	var stream = PortAudioStream.new()
-	var out_p = PortAudioStreamParameter.new()
 	var device_index = PortAudio.get_default_output_device()
+	
+	var out_p = PortAudioStreamParameter.new()
 	out_p.set_device_index(device_index)
 	out_p.set_channel_count(2)
+	
+	var stream = PortAudioStream.new()
 	stream.set_output_stream_parameter(out_p)
+	stream.set_sample_format(PortAudioStreamParameter.FLOAT_32)
 
 	var audio_callback = funcref(self, "audio_callback")
 	var user_data = "UserData"
@@ -79,9 +82,14 @@ func port_audio():
 # Audio Callback
 func audio_callback(data : PortAudioCallbackData):
 	var buff = data.get_output_buffer();
-	for i in range (buff.size()):
-		buff.set(i, i)
-	data.set_output_buffer(buff)
+	var sample_rate = 8000
+	var frequenzy_hz = 440
+	var duration = 2
+	var samples = duration * sample_rate
+	
+	for i in range (samples):
+		var sample : float = sin(2 * PI * float(i) / ( sample_rate / frequenzy_hz))
+		buff.put_float(sample)
 	return 0
 ```
 
