@@ -48,30 +48,40 @@ When building godot it will check if the host api is supported for the platform 
 
 ## Godot
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
-- `PortAudioNode` is a godot node. Its primary purpose is to be extended via GDScript, so that it is possible to have the PortAudio-Audio-Callback available in GDScript.
-- If working with c++ one can simply import the `#include "portaudio/include/portaudio.h"` PortAudio-Header and directly work with PortAudio's API.
 
-### GDScript Bindings
-This is WIP and subject to change and the bindings are still under development.  
-However the AudioCallback is exposed an can be overwritten in GDScript:  
+### GDScript Binding
 ```
-extends PortAudioNode
+extends Node
 
 func _ready():
-	var err = open_default_stream()
-	if(err != PortAudio.NO_ERROR):
-		push_error("open_default_stream: %s" % err)
-		return;
-		
-	err = start_stream()	
+	port_audio()
+	return
+
+func port_audio():
+	var stream = PortAudioStream.new()
+	var out_p = PortAudioStreamParameter.new()
+	var device_index = PortAudio.get_default_output_device()
+	out_p.set_device_index(device_index)
+	out_p.set_channel_count(2)
+	stream.set_output_stream_parameter(out_p)
+
+	var audio_callback = funcref(self, "audio_callback")
+	var user_data = "UserData"
+	var err = PortAudio.open_stream(stream, audio_callback, user_data)
 	if(err != PortAudio.NO_ERROR):
 		push_error("start_stream: %s" % err)
-		return;
 		
-# PortAudio "Audio Callback". - Overwrite it to pass the audio data to the outbut buffer.
-func audio_callback(input_buffer : PoolByteArray, output_buffer : PoolByteArray, frames_per_buffer : int, time_info : Dictionary, status_flags : int):
-	for i in range (output_buffer.size()):
-		output_buffer.set(i, i)
+	err = PortAudio.start_stream(stream)	
+	if(err != PortAudio.NO_ERROR):
+		push_error("start_stream: %s" % err)
+		return
+
+# Audio Callback
+func audio_callback(data : PortAudioCallbackData):
+	var buff = data.get_output_buffer();
+	for i in range (buff.size()):
+		buff.set(i, i)
+	data.set_output_buffer(buff)
 	return 0
 ```
 
