@@ -51,15 +51,10 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	audio_callback_data->set_frames_per_buffer(p_frames_per_buffer);
 	audio_callback_data->set_status_flags(p_status_flags);
 
-	// perform callback
-	Variant::CallError call_error;
-	Variant var_user_data = audio_callback_data;
-	const Variant *var_user_data_ptr = &var_user_data;
-
 	Ref<StreamPeerBuffer> output_buffer = user_data->audio_callback_data->get_output_buffer();
 	output_buffer->seek(0);
 
-
+	// perform callback
 	Variant variant = audio_callback_data;
 	const Variant *variant_ptr = &variant;
 	const Variant **p_args = &variant_ptr;
