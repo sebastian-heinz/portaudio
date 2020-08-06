@@ -50,7 +50,8 @@ When building godot it will check if the host api is supported for the platform 
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
 
 ### GDScript Example
-#### Tone Generator
+#### Tone Generator:
+[![Godot - PortAudio Module](http://img.youtube.com/vi/6x_jZo_QxvE/0.jpg)](http://www.youtube.com/watch?v=6x_jZo_QxvE "Godot - PortAudio Module")
 ```
 extends Node
 
