@@ -59,17 +59,20 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	const Variant *variant_ptr = &variant;
 	const Variant **p_args = &variant_ptr;
 	Variant::CallError error;
-	// TODO investigate .. somehow causes memory corruption?
 	Variant result = user_data->audio_callback->call_func(p_args, 1, error);
 	if (error.error != Variant::CallError::CALL_OK) {
 		print_line("PortAudio::port_audio_callback_converter: != Variant::CallError::CALL_OK");
 	}
 
+	// write to output buffer
 	int pos = output_buffer->get_position();
+	if (pos > p_frames_per_buffer) {
+		print_line(vformat("PortAudio::port_audio_callback_converter: pos (%d) > p_frames_per_buffer (%d) - writing to much data per call", pos, (uint8_t)p_frames_per_buffer));
+	}
 	output_buffer->seek(0);
 	int read;
 	uint8_t *ptr = (uint8_t *)p_output_buffer;
-	output_buffer->get_partial_data(ptr, pos, read);
+	output_buffer->get_partial_data(ptr, p_frames_per_buffer, read);
 
 	return 0;
 }
