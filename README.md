@@ -49,15 +49,28 @@ When building godot it will check if the host api is supported for the platform 
 ## Godot
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
 
-### GDScript Binding
+### GDScript Example
+#### Tone Generator
 ```
 extends Node
 
+class_name ToneGenerator
+
+# Member variables
+var sample_rate = 8000
+var frequenzy_hz = 40
+var duration = 1
+
+# Constants
+const SAMPLE_SIZE = 4 # float
+	
 func _ready():
-	port_audio()
+	start_port_audio()
 	return
 
-func port_audio():
+func start_port_audio():
+	var samples = duration * sample_rate
+	
 	var device_index = PortAudio.get_default_output_device()
 	
 	var out_p = PortAudioStreamParameter.new()
@@ -67,9 +80,10 @@ func port_audio():
 	var stream = PortAudioStream.new()
 	stream.set_output_stream_parameter(out_p)
 	stream.set_sample_format(PortAudioStreamParameter.FLOAT_32)
+	stream.set_frames_per_buffer(samples * SAMPLE_SIZE)
 
 	var audio_callback = funcref(self, "audio_callback")
-	var user_data = "UserData"
+	var user_data = samples
 	var err = PortAudio.open_stream(stream, audio_callback, user_data)
 	if(err != PortAudio.NO_ERROR):
 		push_error("start_stream: %s" % err)
@@ -81,16 +95,13 @@ func port_audio():
 
 # Audio Callback
 func audio_callback(data : PortAudioCallbackData):
-	var buff = data.get_output_buffer();
-	var sample_rate = 8000
-	var frequenzy_hz = 440
-	var duration = 2
-	var samples = duration * sample_rate
-	
+	var buff = data.get_output_buffer()
+	var samples = data.get_user_data()
 	for i in range (samples):
 		var sample : float = sin(2 * PI * float(i) / ( sample_rate / frequenzy_hz))
 		buff.put_float(sample)
 	return 0
+
 ```
 
 ## Examples
