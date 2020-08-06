@@ -51,6 +51,7 @@ When building godot it will check if the host api is supported for the platform 
 
 ### GDScript Example
 #### Tone Generator:
+Youtube Video:  
 [![Godot - PortAudio Module](http://img.youtube.com/vi/6x_jZo_QxvE/0.jpg)](http://www.youtube.com/watch?v=6x_jZo_QxvE "Godot - PortAudio Module")
 ```
 extends Node
