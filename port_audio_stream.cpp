@@ -16,6 +16,14 @@ void PortAudioStream::set_output_channel_count(int p_output_channel_count) {
 	output_channel_count = p_output_channel_count;
 }
 
+void PortAudioStream::set_sample_format(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format) {
+	sample_format = p_sample_format;
+}
+
+PortAudioStreamParameter::PortAudioSampleFormat PortAudioStream::get_sample_format() {
+	return sample_format;
+}
+
 double PortAudioStream::get_sample_rate() {
 	return sample_rate;
 }
@@ -69,6 +77,8 @@ void PortAudioStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_input_channel_count", "input_channel_count"), &PortAudioStream::set_input_channel_count);
 	ClassDB::bind_method(D_METHOD("get_output_channel_count"), &PortAudioStream::get_output_channel_count);
 	ClassDB::bind_method(D_METHOD("set_output_channel_count", "output_channel_count"), &PortAudioStream::set_output_channel_count);
+	ClassDB::bind_method(D_METHOD("get_sample_format"), &PortAudioStream::get_sample_format);
+	ClassDB::bind_method(D_METHOD("set_sample_format", "sample_format"), &PortAudioStream::set_sample_format);
 	ClassDB::bind_method(D_METHOD("get_sample_rate"), &PortAudioStream::get_sample_rate);
 	ClassDB::bind_method(D_METHOD("set_sample_rate", "sample_rate"), &PortAudioStream::set_sample_rate);
 	ClassDB::bind_method(D_METHOD("get_frames_per_buffer"), &PortAudioStream::get_frames_per_buffer);
@@ -82,6 +92,7 @@ void PortAudioStream::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "input_channel_count"), "set_input_channel_count", "get_input_channel_count");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_channel_count"), "set_output_channel_count", "get_output_channel_count");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "sample_format", PROPERTY_HINT_ENUM, "FLOAT_32, INT_32, INT_24, INT_16, INT_8, U_INT_8, CUSTOM_FORMAT, NON_INTERLEAVED"), "set_sample_format", "get_sample_format");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "sample_rate"), "set_sample_rate", "get_sample_rate");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "frames_per_buffer"), "set_frames_per_buffer", "get_frames_per_buffer");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "input_stream_parameter", PROPERTY_HINT_RESOURCE_TYPE, "PortAudioStreamParameter"), "set_input_stream_parameter", "get_input_stream_parameter");
@@ -101,6 +112,7 @@ PortAudioStream::PortAudioStream() {
 	stream = NULL;
 	input_channel_count = 0;
 	output_channel_count = 2;
+	sample_format = PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32;
 	sample_rate = 44100.0;
 	frames_per_buffer = 0;
 	input_stream_parameter = Ref<PortAudioStreamParameter>();

@@ -1,9 +1,9 @@
 #include "register_types.h"
 
 #include "./port_audio.h"
+#include "./port_audio_callback_data.h"
 #include "./port_audio_stream.h"
 #include "./port_audio_stream_parameter.h"
-#include "./port_audio_node.h"
 #include "./port_audio_test_node.h"
 
 #include <core/class_db.h>
@@ -18,9 +18,9 @@ void register_portaudio_types() {
 	Engine::get_singleton()->add_singleton(Engine::Singleton("PortAudio", PortAudio::get_singleton()));
 
 	// Classes
-	ClassDB::register_class<PortAudioNode>();
 	ClassDB::register_class<PortAudioStream>();
 	ClassDB::register_class<PortAudioStreamParameter>();
+	ClassDB::register_class<PortAudioCallbackData>();
 	ClassDB::register_class<PortAudioTestNode>();
 }
 

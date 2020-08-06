@@ -120,6 +120,7 @@ for host_api in available_host_apis:
     module_env.Append(CPPDEFINES=["PA_USE_JACK"])
     module_env.Append(CPPPATH=["portaudio/src/hostapi/jack"])
     host_api_sources.append("./portaudio/src/hostapi/jack/pa_jack.c")
+    
   if(host_api == "wasapi"): 
     # disable Godot WASAPI driver
     env['CPPDEFINES'] = [ x for x in env['CPPDEFINES'] if 'WASAPI_ENABLED' not in x]
@@ -170,7 +171,8 @@ sources = [
 "port_audio.cpp",
 "port_audio_stream.cpp",
 "port_audio_stream_parameter.cpp",
-"port_audio_node.cpp",
+"port_audio_callback_data.cpp",
+
 "port_audio_test_node.cpp",
 ]
 module_env.add_source_files(env.modules_sources, sources)

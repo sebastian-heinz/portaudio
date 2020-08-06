@@ -3,41 +3,23 @@
 
 #include "port_audio_stream.h"
 
+#include <core/func_ref.h>
 #include <core/object.h>
+
+#include <map>
 
 class PortAudio : public Object {
 	GDCLASS(PortAudio, Object);
 
 public:
-	typedef int AudioCallback(
-			const PoolVector<uint8_t> &p_input_buffer,
-			PoolVector<uint8_t> &p_output_buffer,
-			uint64_t p_frames_per_buffer,
-			Dictionary p_time_info,
-			uint64_t p_status_flags,
-			void *user_data);
-
-	/** Functions of type PaStreamFinishedCallback are implemented by PortAudio 
- clients. They can be registered with a stream using the Pa_SetStreamFinishedCallback
- function. Once registered they are called when the stream becomes inactive
- (ie once a call to Pa_StopStream() will not block).
- A stream will become inactive after the stream callback returns non-zero,
- or when Pa_StopStream or Pa_AbortStream is called. For a stream providing audio
- output, if the stream callback returns paComplete, or Pa_StopStream() is called,
- the stream finished callback will not be called until all generated sample data
- has been played.
- 
- @param userData The userData parameter supplied to Pa_OpenStream()
-
- @see Pa_SetStreamFinishedCallback
-*/
-	typedef void StreamFinishedCallback(void *userData);
-
 	enum PortAudioError {
 		// Custom Error
 		UNDEFINED = -1,
 		NOT_PORT_AUDIO_NODE = -2,
-		// PaError
+		INVALID_FUNC_REF = -3,
+		STREAM_NOT_FOUND = -4,
+		STREAM_USER_DATA_NOT_FOUND = -5,
+		// PortAudio Library Error
 		NO_ERROR = 0,
 		NOT_INITIALIZED = -10000,
 		UNANTICIPATED_HOST_ERROR,
@@ -70,21 +52,10 @@ public:
 		BAD_BUFFER_PTR
 	};
 
-	enum PortAudioSampleFormat {
-		FLOAT_32 = 0x00000001,
-		INT_32 = 0x00000002,
-		INT_24 = 0x00000004,
-		INT_16 = 0x00000008,
-		INT_8 = 0x00000010,
-		U_INT_8 = 0x00000020,
-		CUSTOM_FORMAT = 0x00010000,
-		NON_INTERLEAVED = 0x80000000,
-	};
-
 private:
 	static PortAudio *singleton;
 
-	int output_buffer_size;
+	std::map<Ref<PortAudioStream>, void *> data_map;
 
 protected:
 	static void _bind_methods();
@@ -109,13 +80,10 @@ public:
 	int get_default_output_device();
 	Dictionary get_device_info(int p_device_index);
 	PortAudio::PortAudioError is_format_supported(Ref<PortAudioStreamParameter> p_input_stream_parameter, Ref<PortAudioStreamParameter> p_output_stream_parameter, double p_sample_rate);
-	// TODO godot types:
-	PortAudio::PortAudioError open_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data);
-	// TODO godot types:
-	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, AudioCallback *p_audio_callback, void *p_user_data);
+	PortAudio::PortAudioError open_stream(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_audio_callback, Variant p_user_data);
+	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_audio_callback, Variant p_user_data);
 	PortAudio::PortAudioError close_stream(Ref<PortAudioStream> p_stream);
-	// TODO godot types:
-	PortAudio::PortAudioError set_stream_finished_callback(Ref<PortAudioStream> p_stream, StreamFinishedCallback *p_stream_finished_callback);
+	PortAudio::PortAudioError set_stream_finished_callback(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_stream_finished_callback);
 	PortAudio::PortAudioError start_stream(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError stop_stream(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError abort_stream(Ref<PortAudioStream> p_stream);
@@ -128,18 +96,13 @@ public:
 	PortAudio::PortAudioError write_stream(Ref<PortAudioStream> p_stream, PoolVector<uint8_t> p_buffer, uint64_t p_frames);
 	int64_t get_stream_read_available(Ref<PortAudioStream> p_stream);
 	int64_t get_stream_write_available(Ref<PortAudioStream> p_stream);
-
-	PortAudio::PortAudioError get_sample_size(PortAudioSampleFormat p_sample_format);
+	PortAudio::PortAudioError get_sample_size(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format);
 	void sleep(unsigned int p_ms);
-
-	int get_output_buffer_size();
-	void set_output_buffer_size(int p_output_buffer_size);
 
 	PortAudio();
 	~PortAudio();
 };
 
 VARIANT_ENUM_CAST(PortAudio::PortAudioError);
-VARIANT_ENUM_CAST(PortAudio::PortAudioSampleFormat);
 
 #endif

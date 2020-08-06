@@ -22,6 +22,7 @@ private:
 	void *stream;
 	int input_channel_count;
 	int output_channel_count;
+	PortAudioStreamParameter::PortAudioSampleFormat sample_format;
 	double sample_rate;
 	unsigned int frames_per_buffer;
 	Ref<PortAudioStreamParameter> input_stream_parameter;
@@ -36,6 +37,8 @@ public:
 	void set_input_channel_count(int p_input_channel_count);
 	int get_output_channel_count();
 	void set_output_channel_count(int p_output_channel_count);
+	void set_sample_format(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format);
+	PortAudioStreamParameter::PortAudioSampleFormat get_sample_format();
 	double get_sample_rate();
 	void set_sample_rate(double p_sample_rate);
 	unsigned int get_frames_per_buffer();
@@ -48,6 +51,7 @@ public:
 	void set_stream_flags(PortAudioStreamFlag p_stream_flags);
 	void *get_stream();
 	void set_stream(void *p_stream);
+
 	PortAudioStream();
 	~PortAudioStream();
 };

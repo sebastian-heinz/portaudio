@@ -16,11 +16,11 @@ int PortAudioStreamParameter::get_channel_count() {
 	return channel_count;
 }
 
-void PortAudioStreamParameter::set_sample_format(uint64_t p_sample_format) {
+void PortAudioStreamParameter::set_sample_format(PortAudioSampleFormat p_sample_format) {
 	sample_format = p_sample_format;
 }
 
-uint64_t PortAudioStreamParameter::get_sample_format() {
+PortAudioStreamParameter::PortAudioSampleFormat PortAudioStreamParameter::get_sample_format() {
 	return sample_format;
 }
 
@@ -52,14 +52,24 @@ void PortAudioStreamParameter::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "device_index"), "set_device_index", "get_device_index");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "channel_count"), "set_channel_count", "get_channel_count");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "sample_format"), "set_sample_format", "get_sample_format");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "sample_format", PROPERTY_HINT_ENUM, "FLOAT_32, INT_32, INT_24, INT_16, INT_8, U_INT_8, CUSTOM_FORMAT, NON_INTERLEAVED"), "set_sample_format", "get_sample_format");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "suggested_latency"), "set_suggested_latency", "get_suggested_latency");
+
+	// PortAudioSampleSize
+	BIND_ENUM_CONSTANT(FLOAT_32);
+	BIND_ENUM_CONSTANT(INT_32);
+	BIND_ENUM_CONSTANT(INT_24);
+	BIND_ENUM_CONSTANT(INT_16);
+	BIND_ENUM_CONSTANT(INT_8);
+	BIND_ENUM_CONSTANT(U_INT_8);
+	BIND_ENUM_CONSTANT(CUSTOM_FORMAT);
+	BIND_ENUM_CONSTANT(NON_INTERLEAVED);
 }
 
 PortAudioStreamParameter::PortAudioStreamParameter() {
 	device_index = 0;
 	channel_count = 0;
-	sample_format = 0;
+	sample_format = PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32;
 	suggested_latency = 0;
 	host_api_specific_stream_info = NULL;
 }
