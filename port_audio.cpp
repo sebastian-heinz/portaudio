@@ -2,7 +2,7 @@
 
 #include "port_audio_callback_data.h"
 
-#include "portaudio/include/portaudio.h"
+#include <portaudio.h>
 
 #pragma region IMP_DETAILS
 
@@ -89,7 +89,7 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 
 	// evaluate callback result
 	int return_code = 0;
-	if (!result.get_type() == Variant::INT) {
+	if (result.get_type() != Variant::INT) {
 		print_line(vformat("PortAudio::port_audio_callback_converter: invalid return type: %s - returning 0", result.get_type()));
 	} else {
 		return_code = result;

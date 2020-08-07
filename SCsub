@@ -25,7 +25,11 @@ use_host_api = [
 #env.Append(CPPDEFINES=["NEED_LONG_INT"])
 module_env.Append(CPPDEFINES=[('PA_GIT_REVISION', 'godot-module-396fe4b')])
 
+# add to Godot include path allows to use PortAudio directly via `#include <portaudio.h>`
+env.Append(CPPPATH=["#modules/portaudio/portaudio/include"])
+
 available_host_apis = []
+available_host_apis.append("skeleton")
 
 pa_sources = [
 "./portaudio/src/common/pa_allocation.c",
@@ -39,11 +43,9 @@ pa_sources = [
 "./portaudio/src/common/pa_stream.c",
 "./portaudio/src/common/pa_trace.c",
 ]
-module_env.add_source_files(env.modules_sources, pa_sources)
 module_env.Append(CPPPATH=["portaudio/include"])
 module_env.Append(CPPPATH=["portaudio/src/common"])
-available_host_apis.append("skeleton")
-   
+
 if module_env["platform"] == "windows":
   win_sources = [
   "./portaudio/src/os/win/pa_win_coinitialize.c",
@@ -59,7 +61,7 @@ if module_env["platform"] == "windows":
   available_host_apis.append("wdmks")
   available_host_apis.append("wmme")
   module_env.Append(CPPPATH=["portaudio/src/os/win"])
-  module_env.add_source_files(env.modules_sources, win_sources)
+  pa_sources.append(win_sources)
   
 if module_env["platform"] == "x11":
   x11_sources = [
@@ -72,7 +74,7 @@ if module_env["platform"] == "x11":
   available_host_apis.append("jack")
   available_host_apis.append("oss")
   module_env.Append(CPPPATH=["portaudio/src/os/unix"])
-  module_env.add_source_files(env.modules_sources, x11_sources)
+  pa_sources.append(x11_sources)
 
 if module_env["platform"] == "osx":
   osx_sources = [
@@ -81,7 +83,7 @@ if module_env["platform"] == "osx":
   ]
   available_host_apis.append("coreaudio")
   module_env.Append(CPPPATH=["portaudio/src/os/unix"])
-  module_env.add_source_files(env.modules_sources, osx_sources)
+  pa_sources.append(osx_sources)
 
 host_api_sources = []
 for host_api in available_host_apis:
@@ -162,7 +164,8 @@ for host_api in available_host_apis:
     host_api_sources.append("./portaudio/src/hostapi/oss/pa_unix_oss.c")
     host_api_sources.append("./portaudio/src/hostapi/oss/recplay.c")
 
-module_env.add_source_files(env.modules_sources, host_api_sources)
+pa_sources.append(host_api_sources)
+module_env.add_source_files(env.modules_sources, pa_sources)
 
 # Godot sources
 sources = [
