@@ -49,7 +49,7 @@ When building godot it will check if the host api is supported for the platform 
 ## Godot
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
 
-### GDScript Example
+### GDScript
 #### Tone Generator:
 Youtube Video:  
 [![Godot - PortAudio Module](http://img.youtube.com/vi/6x_jZo_QxvE/0.jpg)](http://www.youtube.com/watch?v=6x_jZo_QxvE "Godot - PortAudio Module")
@@ -105,6 +105,13 @@ func audio_callback(data : PortAudioCallbackData):
 	return 0
 
 ```
+### C++
+This module will add PortAudio to the include path. It allows to work with PortAudio s library directly:   
+```
+#include <portaudio.h>
+```
+
+For tutorials on how to use PortAudio have a look at the official documentation: http://portaudio.com/docs/v19-doxydocs/initializing_portaudio.html
 
 ## Examples
 A `PortAudioTestNode` exists, simply add it to a scene via the editor and it will enumerate your host apis and devices and print them out:  
