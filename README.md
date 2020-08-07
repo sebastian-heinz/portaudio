@@ -88,7 +88,7 @@ func start_port_audio():
 	var user_data = samples
 	var err = PortAudio.open_stream(stream, audio_callback, user_data)
 	if(err != PortAudio.NO_ERROR):
-		push_error("start_stream: %s" % err)
+		push_error("open_stream: %s" % err)
 		
 	err = PortAudio.start_stream(stream)	
 	if(err != PortAudio.NO_ERROR):
