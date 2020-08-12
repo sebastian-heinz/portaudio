@@ -220,6 +220,10 @@ which violate the above in your Lua user functions. . That said, running Lua in 
 
 Exposing PortAudio to GDScript will have some performance overhead and introduces additional audio latency. If you are looking to get the most out of PortAudio it would be best to utilzie the CallbackFunction in C++. To get a better understanding of how long the callback took, the duration in μs (Microsecond) can be obtained from the callback data `PortAudioCallbackData::get_last_call_duration()`.
 
+### Frames Per Buffer
+The callback provides a `frames_per_buffer`-variable. This does not represent bytes. Depending on the format (FLOAT_32 = 4bytes, INT_16 = 2bytes) you can calculate the frame size by bits (32 / 8) ot (16 / 8) to arrive at the required bytes per frames.  
+Utilizing the blocking mode via `write()` it could result in slow and crackling audio.
+
 ## TODO
 - doc_classes need to be written for GDScript documentation.
 - [WIN] [WDMKS]-driver clashes with godot imports. (error LNK2005: KSDATAFORMAT_SUBTYPE_MIDI already defined in dxguid.lib(dxguid.obj))
