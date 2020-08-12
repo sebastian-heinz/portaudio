@@ -2,6 +2,22 @@ portaudio
 ===
 module for godot
 
+## Table of contents
+- [Why?](#why)
+- [Setup](#setup)
+  - [via submodule](#via-submodule)
+  - [via download](#via-download)
+- [Building](#building)
+- [Driver](#driver)
+- [Godot Integration](#godot-integration)
+  - [Nodes](#nodes)
+  - [Example GDScripts](#example-gdscripts)
+  - [C++](#c++)
+  - [Audio File Reading](#audio-file-reading)
+- [TODO](#todo)
+- [Dependencies](#dependencies)
+- [Links](#links)
+
 ## Why?
 ### Pros
 - Audio is not tied to any Godot-Node, it can be controlled from anywhere.
@@ -46,7 +62,7 @@ When building godot it will check if the host api is supported for the platform 
 *1) requires that the enduser has asio drivers installed (ex. ASIO4ALL)  
 *2) if used godots wasapi driver will be disabled  
 
-## Godot
+## Godot Integration
 - `PortAudio` is a singleton class, its purpose is to provide wrapper methods for all PortAudio calls (PA_*) with a godot type friendly interface. For direct access from anywhere
 
 ### Nodes
@@ -110,7 +126,7 @@ func audio_callback(data : PortAudioCallbackData):
 
 ```
 
-#### WAV Player
+#### WAV Player:
 ```
 extends Node
 
@@ -184,10 +200,8 @@ This module will add PortAudio to the include path. It allows to work with PortA
 
 For tutorials on how to use PortAudio have a look at the official documentation: http://portaudio.com/docs/v19-doxydocs/initializing_portaudio.html
 
-### Extras
+### Audio File Reading
 This module includes additional functionality to support independend audio playback.
-
-#### Audio
 A `AudioReaderWav` exists that can read `.wav` files and extract the PCM samples for streaming to `PortAudio`
 
 ## TODO
