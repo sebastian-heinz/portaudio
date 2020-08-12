@@ -105,6 +105,73 @@ func audio_callback(data : PortAudioCallbackData):
 	return 0
 
 ```
+
+#### WAV Player
+```
+extends Node
+
+class_name AudioPLayer
+
+func _ready():
+	play_file("C:/Users/railgun/Music/file_example_WAV_1MG.wav")
+	return
+
+func play_file(file_path : String):
+	var audio_reader : AudioReader = AudioReaderWav.new()
+	var err = audio_reader.read_file(file_path)
+	if err != AudioReader.NO_ERROR:
+		push_error("play_file: %s" % err)
+		return
+	
+	var device_index = PortAudio.get_default_output_device()
+	var device_info = PortAudio.get_device_info(device_index)
+	
+	var out_p = PortAudioStreamParameter.new()
+	out_p.set_device_index(device_index)
+	out_p.set_channel_count(audio_reader.get_channels())
+	out_p.set_sample_format(audio_reader.get_format())
+	out_p.set_suggested_latency(device_info["default_low_output_latency"])
+	
+	var stream = PortAudioStream.new()
+	stream.set_output_stream_parameter(out_p)
+	stream.set_sample_format(audio_reader.get_format())
+	stream.set_output_channel_count(audio_reader.get_channels())
+	stream.set_sample_rate(audio_reader.get_sample_rate())
+	
+	var audio_callback = funcref(self, "audio_callback")
+	err = PortAudio.open_stream(stream, audio_callback, audio_reader)
+	if err != PortAudio.NO_ERROR:
+		push_error("start_stream: %s" % err)
+		return
+		
+	err = PortAudio.start_stream(stream)
+	if err != PortAudio.NO_ERROR:
+		push_error("start_stream: %s" % err)
+		return
+
+# Audio Callback
+func audio_callback(data : PortAudioCallbackData):
+	
+	var audio_reader : AudioReader = data.get_user_data()
+	var sample_buffer = audio_reader.get_sample_buffer()
+
+	var buff = data.get_output_buffer()
+	var frames_written = 0
+	while frames_written < data.get_frames_per_buffer() * audio_reader.get_channels():
+		match audio_reader.get_format():
+			PortAudioStreamParameter.FLOAT_32:
+				buff.put_float(sample_buffer.get_float())
+			PortAudioStreamParameter.INT_16:
+				buff.put_16(sample_buffer.get_16())
+			PortAudioStreamParameter.INT_8:
+				buff.put_u8(sample_buffer.get_u8())
+		frames_written += 1
+	if sample_buffer.get_available_bytes() == 0:
+		return 1
+	
+	return 0
+```
+
 ### C++
 This module will add PortAudio to the include path. It allows to work with PortAudio s library directly:   
 ```
