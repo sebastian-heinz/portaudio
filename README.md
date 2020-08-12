@@ -134,7 +134,7 @@ extends Node
 class_name AudioPLayer
 
 func _ready():
-	play_file("C:/Users/railgun/Music/file_example_WAV_1MG.wav")
+	play_file("C:/file_example_WAV_1MG.wav")
 	return
 
 func play_file(file_path : String):
