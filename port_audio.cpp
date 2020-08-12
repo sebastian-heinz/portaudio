@@ -2,7 +2,10 @@
 
 #include "port_audio_callback_data.h"
 
+#include <pa_win_wasapi.h>
 #include <portaudio.h>
+
+#include <core/os/os.h>
 
 #pragma region IMP_DETAILS
 
@@ -13,8 +16,10 @@ public:
 	Ref<FuncRef> audio_callback;
 	Ref<FuncRef> stream_finished_callback;
 	Ref<PortAudioCallbackData> audio_callback_data;
+	uint64_t last_call_duration;
 	CallbackUserDataGdBinding::CallbackUserDataGdBinding() {
 		port_audio = NULL;
+		last_call_duration = 0;
 		stream = Ref<PortAudioStream>();
 		audio_callback = Ref<FuncRef>();
 		stream_finished_callback = Ref<FuncRef>();
@@ -25,6 +30,8 @@ public:
 static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, void *p_output_buffer,
 		unsigned long p_frames_per_buffer, const PaStreamCallbackTimeInfo *p_time_info,
 		PaStreamCallbackFlags p_status_flags, void *p_user_data) {
+
+	uint64_t micro_seconds_start = OS::get_singleton()->get_ticks_usec();
 
 	CallbackUserDataGdBinding *user_data = (CallbackUserDataGdBinding *)p_user_data;
 	if (!user_data) {
@@ -59,6 +66,7 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	audio_callback_data->set_output_buffer_dac_time(p_time_info->outputBufferDacTime);
 	audio_callback_data->set_frames_per_buffer(p_frames_per_buffer);
 	audio_callback_data->set_status_flags(p_status_flags);
+	audio_callback_data->set_last_call_duration(user_data->last_call_duration);
 
 	// set buffer to start
 	if (has_output) {
@@ -77,14 +85,15 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 
 	// write to output buffer
 	if (has_output) {
+		// TODO determinate max buffer size of `p_output_buffer`
 		int bytes_written = output_buffer->get_position();
 		if (bytes_written > p_frames_per_buffer) {
-			print_line(vformat("PortAudio::port_audio_callback_converter: bytes_written (%d) > p_frames_per_buffer (%d) - data truncated", bytes_written, (uint8_t)p_frames_per_buffer));
+			//print_line(vformat("PortAudio::port_audio_callback_converter: bytes_written (%d) > p_frames_per_buffer (%d) - data truncated", bytes_written, (uint8_t)p_frames_per_buffer));
 		}
 		output_buffer->seek(0);
 		int read;
 		uint8_t *output_buffer_ptr = (uint8_t *)p_output_buffer;
-		output_buffer->get_partial_data(output_buffer_ptr, p_frames_per_buffer, read);
+		output_buffer->get_partial_data(output_buffer_ptr, bytes_written, read);
 	}
 
 	// evaluate callback result
@@ -94,6 +103,15 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	} else {
 		return_code = result;
 	}
+
+	uint64_t micro_seconds_end = OS::get_singleton()->get_ticks_usec();
+	user_data->last_call_duration = micro_seconds_end - micro_seconds_start;
+
+	//typedef enum PaStreamCallbackResult {
+	//	paContinue = 0, /**< Signal that the stream should continue invoking the callback and processing audio. */
+	//	paComplete = 1, /**< Signal that the stream should stop invoking the callback and finish once all output samples have played. */
+	//	paAbort = 2 /**< Signal that the stream should stop invoking the callback and finish as soon as possible. */
+	//} PaStreamCallbackResult;
 	return return_code;
 }
 
@@ -189,26 +207,33 @@ static PortAudio::PortAudioError get_error(PaError p_error) {
 }
 
 static PaSampleFormat get_sample_format(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format) {
-	switch (p_sample_format) {
-		case PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32:
-			return paFloat32;
-		case PortAudioStreamParameter::PortAudioSampleFormat::INT_32:
-			return paInt32;
-		case PortAudioStreamParameter::PortAudioSampleFormat::INT_24:
-			return paInt24;
-		case PortAudioStreamParameter::PortAudioSampleFormat::INT_16:
-			return paInt16;
-		case PortAudioStreamParameter::PortAudioSampleFormat::INT_8:
-			return paInt8;
-		case PortAudioStreamParameter::PortAudioSampleFormat::U_INT_8:
-			return paUInt8;
-		case PortAudioStreamParameter::PortAudioSampleFormat::CUSTOM_FORMAT:
-			return paCustomFormat;
-		case PortAudioStreamParameter::PortAudioSampleFormat::NON_INTERLEAVED:
-			return paNonInterleaved;
-	}
-	print_error(vformat("PortAudio::get_sample_format: undefined sample_format code: %d", p_sample_format));
-	return paFloat32;
+
+	// todo check non interleaved flag
+
+	//PaSampleFormat sample_format = 0;
+	//if (p_sample_format & PortAudioStreamParameter::PortAudioSampleFormat::NON_INTERLEAVED) {
+	//	non_interleaved = true;
+	//}
+	//
+	//switch (p_sample_format) {
+	//	case PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32:
+	//		return paFloat32;
+	//	case PortAudioStreamParameter::PortAudioSampleFormat::INT_32:
+	//		return paInt32;
+	//	case PortAudioStreamParameter::PortAudioSampleFormat::INT_24:
+	//		return paInt24;
+	//	case PortAudioStreamParameter::PortAudioSampleFormat::INT_16:
+	//		return paInt16;
+	//	case PortAudioStreamParameter::PortAudioSampleFormat::INT_8:
+	//		return paInt8;
+	//	case PortAudioStreamParameter::PortAudioSampleFormat::U_INT_8:
+	//		return paUInt8;
+	//	case PortAudioStreamParameter::PortAudioSampleFormat::CUSTOM_FORMAT:
+	//		return paCustomFormat;
+	//}
+
+	//print_error(vformat("PortAudio::get_sample_format: undefined sample_format code: %d", p_sample_format));
+	return (PaSampleFormat)p_sample_format;
 }
 #pragma endregion IMP_DETAILS
 
@@ -658,4 +683,15 @@ PortAudio::~PortAudio() {
 		print_error(vformat("PortAudio::PortAudio: failed to terminate (%d)", err));
 	}
 	data_map.clear();
+}
+
+PortAudio::PortAudioError PortAudio::enable_exclusive_mode(Ref<PortAudioStreamParameter> p_stream_parameter) {
+	struct PaWasapiStreamInfo wasapiInfo;
+	wasapiInfo.size = sizeof(PaWasapiStreamInfo);
+	wasapiInfo.hostApiType = paWASAPI;
+	wasapiInfo.version = 1;
+	wasapiInfo.flags = (paWinWasapiExclusive | paWinWasapiThreadPriority);
+	wasapiInfo.threadPriority = eThreadPriorityProAudio;
+	p_stream_parameter->set_host_api_specific_stream_info(&wasapiInfo);
+	return PortAudioError::NO_ERROR;
 }

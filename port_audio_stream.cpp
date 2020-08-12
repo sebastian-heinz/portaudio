@@ -114,7 +114,7 @@ PortAudioStream::PortAudioStream() {
 	output_channel_count = 2;
 	sample_format = PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32;
 	sample_rate = 44100.0;
-	frames_per_buffer = 0;
+	frames_per_buffer = 0; // paFramesPerBufferUnspecified (0)
 	input_stream_parameter = Ref<PortAudioStreamParameter>();
 	output_stream_parameter = Ref<PortAudioStreamParameter>();
 	stream_flags = NO_FLAG;

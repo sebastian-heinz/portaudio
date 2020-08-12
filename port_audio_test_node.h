@@ -3,11 +3,18 @@
 
 #include "port_audio.h"
 
-#include <scene/2d/node_2d.h>
+#include <scene/gui/control.h>
 
-class PortAudioTestNode : public Node2D {
-	GDCLASS(PortAudioTestNode, Node2D);
+class PortAudioTestNode : public Control {
+	GDCLASS(PortAudioTestNode, Control);
 
+private:
+	int device_count;
+	int selected_host_api;
+	Node *current_device_info;
+
+
+	void option_host_api_selected(int p_index);
 
 protected:
 	static void _bind_methods();

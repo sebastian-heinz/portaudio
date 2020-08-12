@@ -171,11 +171,14 @@ module_env.add_source_files(env.modules_sources, pa_sources)
 sources = [
 "register_types.cpp",
 
-"port_audio.cpp",
-"port_audio_stream.cpp",
-"port_audio_stream_parameter.cpp",
-"port_audio_callback_data.cpp",
+"./port_audio.cpp",
+"./port_audio_stream.cpp",
+"./port_audio_stream_parameter.cpp",
+"./port_audio_callback_data.cpp",
 
-"port_audio_test_node.cpp",
+"./audio/audio_reader.cpp",
+"./audio/audio_reader_wav.cpp",
+
+"./port_audio_test_node.cpp",
 ]
 module_env.add_source_files(env.modules_sources, sources)

@@ -64,6 +64,14 @@ Variant PortAudioCallbackData::get_user_data() {
 	return user_data;
 }
 
+void PortAudioCallbackData::set_last_call_duration(uint64_t p_last_call_duration) {
+	last_call_duration = p_last_call_duration;
+}
+
+uint64_t PortAudioCallbackData::get_last_call_duration() {
+	return last_call_duration;
+}
+
 void PortAudioCallbackData::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_input_buffer_adc_time"), &PortAudioCallbackData::get_input_buffer_adc_time);
 	ClassDB::bind_method(D_METHOD("set_input_buffer_adc_time", "input_buffer_adc_time"), &PortAudioCallbackData::set_input_buffer_adc_time);
@@ -81,6 +89,8 @@ void PortAudioCallbackData::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_status_flags", "status_flags"), &PortAudioCallbackData::set_status_flags);
 	ClassDB::bind_method(D_METHOD("get_user_data"), &PortAudioCallbackData::get_user_data);
 	ClassDB::bind_method(D_METHOD("set_user_data", "user_data"), &PortAudioCallbackData::set_user_data);
+	ClassDB::bind_method(D_METHOD("get_last_call_duration"), &PortAudioCallbackData::get_last_call_duration);
+	ClassDB::bind_method(D_METHOD("set_last_call_duration", "last_call_duration"), &PortAudioCallbackData::set_last_call_duration);
 }
 
 PortAudioCallbackData::PortAudioCallbackData() {

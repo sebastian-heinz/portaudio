@@ -99,6 +99,9 @@ public:
 	PortAudio::PortAudioError get_sample_size(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format);
 	void sleep(unsigned int p_ms);
 
+	PortAudio::PortAudioError enable_exclusive_mode(Ref<PortAudioStreamParameter> p_stream_parameter);
+	
+
 	PortAudio();
 	~PortAudio();
 };

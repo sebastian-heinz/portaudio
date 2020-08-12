@@ -16,6 +16,7 @@ private:
 	uint64_t frames_per_buffer;
 	uint64_t status_flags;
 	Variant user_data;
+	uint64_t last_call_duration;
 
 protected:
 	static void _bind_methods();
@@ -37,6 +38,8 @@ public:
 	uint64_t get_status_flags();
 	void set_user_data(const Variant &p_user_data);
 	Variant get_user_data();
+	void set_last_call_duration(uint64_t p_last_call_duration);
+	uint64_t get_last_call_duration();
 
 	PortAudioCallbackData();
 	~PortAudioCallbackData();
