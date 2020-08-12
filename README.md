@@ -12,7 +12,7 @@ module for godot
 - [Godot Integration](#godot-integration)
   - [Nodes](#nodes)
   - [Example GDScripts](#example-gdscripts)
-  - [C++](#c++)
+  - [C++](#c)
   - [Audio File Reading](#audio-file-reading)
 - [TODO](#todo)
 - [Dependencies](#dependencies)
