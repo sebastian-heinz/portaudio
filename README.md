@@ -252,11 +252,11 @@ The execution time of the audio loop has to be faster than this time.
 The return value of the callback indicates if it should continue to be called or it can be signaled to stop.  
 C++:
 ```
-	enum PortAudioCallbackResult {
-		CONTINUE = 0,
-		COMPLETE = 1,
-		ABORT = 2,
-	};
+enum PortAudioCallbackResult {
+	CONTINUE = 0,
+	COMPLETE = 1,
+	ABORT = 2,
+};
 ```
 GDScript:
 ```
