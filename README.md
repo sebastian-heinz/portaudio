@@ -71,7 +71,7 @@ When building godot it will check if the host api is supported for the platform 
 
 ### Nodes
 A `PortAudioTestNode` exists, simply add it to a scene via the editor and it will enumerate your host apis and devices and print them out:  
-<img src="/doc/test_node.png" width="800">  
+<img src="/doc/test_node.png" width="400">  
 
 ### Example GDScripts
 #### Tone Generator:
