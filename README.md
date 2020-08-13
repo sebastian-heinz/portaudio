@@ -213,12 +213,15 @@ Please refer to https://app.assembla.com/wiki/show/portaudio/Tips_Callbacks for 
 Especially:
 ```
 Regarding crossing language boundaries such as calling Java or Lua:
-In general it should be avoided. But, in fact, Lua has a bounded time GC so, like the Supercollider language, it could be used in a PortAudio callback 
-so long as you make sure it doesn’t violate the points I made above: i.e. avoid calling the OS level memory allocator, file I/O, or doing other things 
-which violate the above in your Lua user functions. . That said, running Lua in a PortAudio callback is definitely at the experimental end of the spectrum.
+In general it should be avoided. But, in fact, Lua has a bounded time GC so, 
+like the Supercollider language, it could be used in a PortAudio callback 
+so long as you make sure it doesn’t violate the points I made above: 
+i.e. avoid calling the OS level memory allocator, file I/O, or doing other things 
+which violate the above in your Lua user functions. . 
+That said, running Lua in a PortAudio callback is definitely at the experimental end of the spectrum.
 ```
 
-Exposing PortAudio to GDScript will have some performance overhead and introduces additional audio latency. If you are looking to get the most out of PortAudio it would be best to utilzie the CallbackFunction in C++. To get a better understanding of how long the callback took, the duration in μs (Microsecond) can be obtained from the callback data `PortAudioCallbackData::get_last_call_duration()`.
+Exposing PortAudio to GDScript will have some performance overhead and introduces additional audio latency. If you are looking for low latency it would be best to utilzie the CallbackFunction in C++. To get a better understanding of how long the callback took, the duration in μs (Microsecond) can be obtained from the callback data `PortAudioCallbackData::get_last_call_duration()`.
 
 ### Frames Per Buffer
 The callback provides a `frames_per_buffer`-variable. This does not represent bytes. Depending on the format (FLOAT_32 = 4bytes, INT_16 = 2bytes) and channels the buffer size can be calculated.
