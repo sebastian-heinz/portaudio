@@ -23,12 +23,14 @@ module for godot
 ### Pros
 - Audio is not tied to any Godot-Node, it can be controlled from anywhere.
 - Flexibility choose which driver to use at runtime, depending on the system and apis that are available.
-- Most likely a lower latency due to more direct access to audio hardware. (beneficial for music rythm games)
 - Full control over input buffer (for recording requirements) and output buffer. (beneficial for audio tools)
+- Lower latency due to more direct access to audio hardware. (beneficial for music rythm games)(*1)
 
 ### Cons
 - Requires to write your own audio pipeline. (from decoding the file format, to filling the playback buffer)
 - More code to detect and configure the driver.
+
+*1) only applies when utilizing c++ audio callback, not GDScript bindings
 
 ## Setup:
 ### via submodule
