@@ -353,7 +353,7 @@ int PortAudio::get_default_output_device() {
 Dictionary PortAudio::get_device_info(int p_device_index) {
 	const PaDeviceInfo *pa_device_info = Pa_GetDeviceInfo((PaDeviceIndex)p_device_index);
 	if (pa_device_info == NULL) {
-		// TODO error 
+		// TODO error
 		return Dictionary();
 	}
 	Dictionary device_info;
@@ -466,7 +466,7 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	return get_error(err);
 }
 
-PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_audio_callback, Variant p_user_data) {
+PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_stream, PortAudioStreamParameter::PortAudioSampleFormat p_sample_format, Ref<FuncRef> p_audio_callback, Variant p_user_data) {
 	if (!p_audio_callback->is_valid()) {
 		PortAudio::PortAudioError::INVALID_FUNC_REF;
 	}
@@ -477,28 +477,32 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
 	user_data->audio_callback_data.instance();
 	user_data->audio_callback_data->set_user_data(p_user_data);
 
-	PaSampleFormat pa_sample_format = get_sample_format(p_stream->get_sample_format());
+	PaSampleFormat pa_sample_format = get_sample_format(p_sample_format);
 	PaError sample_size = Pa_GetSampleSize(pa_sample_format);
 	if (sample_size <= 0) {
 		return get_error(sample_size);
 	}
 
-	if (p_stream->get_input_channel_count() > 0) {
+	Ref<PortAudioStreamParameter> input_parameter = p_stream->get_input_stream_parameter();
+	if (input_parameter.is_valid() && input_parameter->get_channel_count() > 0) {
 		Ref<StreamPeerBuffer> input_buffer;
 		input_buffer.instance();
 		input_buffer->resize(p_stream->get_frames_per_buffer());
 		user_data->audio_callback_data->set_input_buffer(input_buffer);
 		user_data->input_sample_size = (int)sample_size;
 		user_data->input_channel_count = p_stream->get_input_channel_count();
+		input_parameter->set_sample_format(p_sample_format);
 	}
 
-	if (p_stream->get_output_channel_count() > 0) {
+	Ref<PortAudioStreamParameter> output_parameter = p_stream->get_output_stream_parameter();
+	if (output_parameter.is_valid() && output_parameter->get_channel_count() > 0) {
 		Ref<StreamPeerBuffer> output_buffer;
 		output_buffer.instance();
 		output_buffer->resize(p_stream->get_frames_per_buffer());
 		user_data->audio_callback_data->set_output_buffer(output_buffer);
 		user_data->output_sample_size = (int)sample_size;
 		user_data->output_channel_count = p_stream->get_output_channel_count();
+		output_parameter->set_sample_format(p_sample_format);
 	}
 
 	PaStream *stream;
@@ -716,7 +720,7 @@ void PortAudio::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_device_info", "device_index"), &PortAudio::get_device_info);
 	ClassDB::bind_method(D_METHOD("is_format_supported", "input_stream_parameter", "output_stream_parameter", "sample_rate"), &PortAudio::is_format_supported);
 	ClassDB::bind_method(D_METHOD("open_stream", "stream", "audio_callback", "user_data"), &PortAudio::open_stream);
-	ClassDB::bind_method(D_METHOD("open_default_stream", "stream", "audio_callback", "user_data"), &PortAudio::open_default_stream);
+	ClassDB::bind_method(D_METHOD("open_default_stream", "stream", "sample_format", "audio_callback", "user_data"), &PortAudio::open_default_stream);
 	ClassDB::bind_method(D_METHOD("close_stream", "stream"), &PortAudio::close_stream);
 	ClassDB::bind_method(D_METHOD("set_stream_finished_callback", "stream", "stream_finished_callback"), &PortAudio::set_stream_finished_callback);
 	ClassDB::bind_method(D_METHOD("start_stream", "stream"), &PortAudio::start_stream);

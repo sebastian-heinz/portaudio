@@ -1,27 +1,41 @@
 #include "port_audio_stream.h"
 
 int PortAudioStream::get_input_channel_count() {
-	return input_channel_count;
+	if (input_stream_parameter.is_null()) {
+		return 0;
+	}
+	return input_stream_parameter->get_channel_count();
 }
 
 void PortAudioStream::set_input_channel_count(int p_input_channel_count) {
-	input_channel_count = p_input_channel_count;
+	if (p_input_channel_count <= 0) {
+		if (input_stream_parameter.is_valid()) {
+			input_stream_parameter.unref();
+		}
+	}
+	if (input_stream_parameter.is_null()) {
+		input_stream_parameter.instance();
+	}
+	input_stream_parameter->set_channel_count(p_input_channel_count);
 }
 
 int PortAudioStream::get_output_channel_count() {
-	return output_channel_count;
+	if (output_stream_parameter.is_null()) {
+		return 0;
+	}
+	return output_stream_parameter->get_channel_count();
 }
 
 void PortAudioStream::set_output_channel_count(int p_output_channel_count) {
-	output_channel_count = p_output_channel_count;
-}
-
-void PortAudioStream::set_sample_format(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format) {
-	sample_format = p_sample_format;
-}
-
-PortAudioStreamParameter::PortAudioSampleFormat PortAudioStream::get_sample_format() {
-	return sample_format;
+	if (p_output_channel_count <= 0) {
+		if (output_stream_parameter.is_valid()) {
+			output_stream_parameter.unref();
+		}
+	}
+	if (output_stream_parameter.is_null()) {
+		output_stream_parameter.instance();
+	}
+	output_stream_parameter->set_channel_count(p_output_channel_count);
 }
 
 double PortAudioStream::get_sample_rate() {
@@ -77,8 +91,6 @@ void PortAudioStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_input_channel_count", "input_channel_count"), &PortAudioStream::set_input_channel_count);
 	ClassDB::bind_method(D_METHOD("get_output_channel_count"), &PortAudioStream::get_output_channel_count);
 	ClassDB::bind_method(D_METHOD("set_output_channel_count", "output_channel_count"), &PortAudioStream::set_output_channel_count);
-	ClassDB::bind_method(D_METHOD("get_sample_format"), &PortAudioStream::get_sample_format);
-	ClassDB::bind_method(D_METHOD("set_sample_format", "sample_format"), &PortAudioStream::set_sample_format);
 	ClassDB::bind_method(D_METHOD("get_sample_rate"), &PortAudioStream::get_sample_rate);
 	ClassDB::bind_method(D_METHOD("set_sample_rate", "sample_rate"), &PortAudioStream::set_sample_rate);
 	ClassDB::bind_method(D_METHOD("get_frames_per_buffer"), &PortAudioStream::get_frames_per_buffer);
@@ -110,9 +122,6 @@ void PortAudioStream::_bind_methods() {
 
 PortAudioStream::PortAudioStream() {
 	stream = NULL;
-	input_channel_count = 0;
-	output_channel_count = 2;
-	sample_format = PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32;
 	sample_rate = 44100.0;
 	frames_per_buffer = 0; // paFramesPerBufferUnspecified (0)
 	input_stream_parameter = Ref<PortAudioStreamParameter>();

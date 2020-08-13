@@ -88,7 +88,7 @@ public:
 	Dictionary get_device_info(int p_device_index);
 	PortAudio::PortAudioError is_format_supported(Ref<PortAudioStreamParameter> p_input_stream_parameter, Ref<PortAudioStreamParameter> p_output_stream_parameter, double p_sample_rate);
 	PortAudio::PortAudioError open_stream(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_audio_callback, Variant p_user_data);
-	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_audio_callback, Variant p_user_data);
+	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, PortAudioStreamParameter::PortAudioSampleFormat p_sample_format, Ref<FuncRef> p_audio_callback, Variant p_user_data);
 	PortAudio::PortAudioError close_stream(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError set_stream_finished_callback(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_stream_finished_callback);
 	PortAudio::PortAudioError start_stream(Ref<PortAudioStream> p_stream);
