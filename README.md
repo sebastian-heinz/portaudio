@@ -13,7 +13,8 @@ module for godot
   - [Nodes](#nodes)
   - [Example GDScripts](#example-gdscripts)
   - [C++](#c)
-  - [Audio File Reading](#audio-file-reading)
+  - PortAudio Extended (Px)[Audio File Reading]
+    - [Audio File Reading](#audio-file-reading)
 - [Gotchas and Tips](#gotchas-and-tips)
 - [TODO](#todo)
 - [Dependencies](#dependencies)
@@ -203,9 +204,15 @@ This module will add PortAudio to the include path. It allows to work with PortA
 
 For tutorials on how to use PortAudio have a look at the official documentation: http://portaudio.com/docs/v19-doxydocs/initializing_portaudio.html
 
-### Audio File Reading
-This module includes additional functionality to support independend audio playback.
-A `AudioReaderWav` exists that can read `.wav` files and extract the PCM samples for streaming to `PortAudio`
+### PortAudio Extended (Px)
+While PortAudio allows for a great deal of customized audio options, 
+the pipeline to provide audio data and make use of playing audio via PortAudio is nonexistend and up to the user. 
+This module includes additional functionality to support audio reading and playback, 
+to allow for an easier entry to utilize PortAudio with Godot. 
+These classes are prefixed by `Px*`.
+
+#### Audio File Reading
+A `PxAudioReaderWav` exists that can read `.wav` files and extract the PCM samples for streaming to `PortAudio`
 
 ## Gotchas and Tips
 
@@ -240,6 +247,23 @@ To calculate the playback duration of the buffer the requested frames can be div
 time_request_seconds = frames_per_buffer / sample_rate
 ```
 The execution time of the audio loop has to be faster than this time.
+
+### Callback Result
+The return value of the callback indicates if it should continue to be called or it can be signaled to stop.  
+C++:
+```
+	enum PortAudioCallbackResult {
+		CONTINUE = 0,
+		COMPLETE = 1,
+		ABORT = 2,
+	};
+```
+GDScript:
+```
+PortAudio.CONTINUE
+PortAudio.COMPLETE
+PortAudio.ABORT
+```
 
 
 ## TODO
