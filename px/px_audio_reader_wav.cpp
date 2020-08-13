@@ -1,16 +1,16 @@
-#include "audio_reader_wav.h"
+#include "px_audio_reader_wav.h"
 
-void AudioReaderWav::_bind_methods() {
+void PxAudioReaderWav::_bind_methods() {
 }
 
-AudioReader::AudioReaderError AudioReaderWav::read(Ref<StreamPeerBuffer> p_buffer) {
+PxAudioReader::PxAudioReaderError PxAudioReaderWav::read(Ref<StreamPeerBuffer> p_buffer) {
 	// WAV references:
 	// http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
 	// http://soundfile.sapp.org/doc/WaveFormat/
 
 	bool is_riff = p_buffer->get_u8() == 'R' && p_buffer->get_u8() == 'I' && p_buffer->get_u8() == 'F' && p_buffer->get_u8() == 'F';
 	if (!is_riff) {
-		return AudioReaderError::ERROR;
+		return PxAudioReaderError::ERROR;
 	}
 
 	// 36 + SubChunk2Size, or more precisely: 4 + (8 + SubChunk1Size) + (8 + SubChunk2Size)
@@ -20,7 +20,7 @@ AudioReader::AudioReaderError AudioReaderWav::read(Ref<StreamPeerBuffer> p_buffe
 
 	bool is_wave = p_buffer->get_u8() == 'W' && p_buffer->get_u8() == 'A' && p_buffer->get_u8() == 'V' && p_buffer->get_u8() == 'E';
 	if (!is_wave) {
-		return AudioReaderError::ERROR;
+		return PxAudioReaderError::ERROR;
 	}
 
 	bool has_fmt = false;
@@ -63,7 +63,7 @@ AudioReader::AudioReaderError AudioReaderWav::read(Ref<StreamPeerBuffer> p_buffe
 			} else if (audio_format == 3 && bits_per_sample == 32) {
 				format = PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32;
 			} else {
-				return AudioReaderError::ERROR;
+				return PxAudioReaderError::ERROR;
 			}
 			sample_rate = sample_rate_file;
 			channels = num_channels;
@@ -83,11 +83,11 @@ AudioReader::AudioReaderError AudioReaderWav::read(Ref<StreamPeerBuffer> p_buffe
 		p_buffer->seek(chunk_position + chunk_size);
 	}
 
-	return AudioReaderError::NO_ERROR;
+	return PxAudioReaderError::NO_ERROR;
 }
 
-AudioReaderWav::AudioReaderWav() {
+PxAudioReaderWav::PxAudioReaderWav() {
 }
 
-AudioReaderWav::~AudioReaderWav() {
+PxAudioReaderWav::~PxAudioReaderWav() {
 }

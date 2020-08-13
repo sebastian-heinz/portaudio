@@ -113,6 +113,10 @@ void PortAudioTestNode::option_host_api_selected(int p_index) {
 	container_device_info_collection->set_v_size_flags(Control::SizeFlags::SIZE_FILL | Control::SizeFlags::SIZE_EXPAND);
 	for (int device = 0; device < device_count; device++) {
 		VBoxContainer *container_device_info = memnew(VBoxContainer);
+		Label *label_device_index = memnew(Label);
+		label_device_index->set_text(vformat("DeviceIndex: %s", device));
+		container_device_info->add_child(label_device_index);
+
 		Dictionary device_info = PortAudio::get_singleton()->get_device_info(device);
 		int device_info_count = device_info.size();
 		int host_api_index = device_info["host_api"];

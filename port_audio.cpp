@@ -5,6 +5,7 @@
 #include <pa_win_wasapi.h>
 #include <portaudio.h>
 
+#include <core/os/memory.h>
 #include <core/os/os.h>
 
 #pragma region IMP_DETAILS
@@ -17,6 +18,10 @@ public:
 	Ref<FuncRef> stream_finished_callback;
 	Ref<PortAudioCallbackData> audio_callback_data;
 	uint64_t last_call_duration;
+	int output_sample_size;
+	int input_sample_size;
+	int output_channel_count;
+	int input_channel_count;
 	CallbackUserDataGdBinding::CallbackUserDataGdBinding() {
 		port_audio = NULL;
 		last_call_duration = 0;
@@ -24,6 +29,10 @@ public:
 		audio_callback = Ref<FuncRef>();
 		stream_finished_callback = Ref<FuncRef>();
 		audio_callback_data = Ref<PortAudioCallbackData>();
+		output_sample_size = 0;
+		input_sample_size = 0;
+		output_channel_count = 0;
+		input_channel_count = 0;
 	}
 };
 
@@ -36,8 +45,9 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	CallbackUserDataGdBinding *user_data = (CallbackUserDataGdBinding *)p_user_data;
 	if (!user_data) {
 		print_line("PortAudio::port_audio_callback_converter: !user_data");
-		return 0;
+		return PortAudio::PortAudioCallbackResult::ABORT;
 	}
+
 	// retrieve callback data
 	Ref<PortAudioCallbackData> audio_callback_data = user_data->audio_callback_data;
 	Ref<StreamPeerBuffer> input_buffer;
@@ -85,10 +95,11 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 
 	// write to output buffer
 	if (has_output) {
-		// TODO determinate max buffer size of `p_output_buffer`
+		int buffer_size = p_frames_per_buffer * user_data->output_channel_count * user_data->output_sample_size;
 		int bytes_written = output_buffer->get_position();
-		if (bytes_written > p_frames_per_buffer) {
-			//print_line(vformat("PortAudio::port_audio_callback_converter: bytes_written (%d) > p_frames_per_buffer (%d) - data truncated", bytes_written, (uint8_t)p_frames_per_buffer));
+		if (bytes_written > buffer_size) {
+			print_line(vformat("PortAudio::port_audio_callback_converter: bytes_written (%d) > p_frames_per_buffer (%d) - data truncated", bytes_written, buffer_size));
+			return PortAudio::PortAudioCallbackResult::CONTINUE;
 		}
 		output_buffer->seek(0);
 		int read;
@@ -97,22 +108,17 @@ static int port_audio_callback_gd_binding_converter(const void *p_input_buffer, 
 	}
 
 	// evaluate callback result
-	int return_code = 0;
+	int callback_result;
 	if (result.get_type() != Variant::INT) {
 		print_line(vformat("PortAudio::port_audio_callback_converter: invalid return type: %s - returning 0", result.get_type()));
 	} else {
-		return_code = result;
+		callback_result = result;
 	}
 
 	uint64_t micro_seconds_end = OS::get_singleton()->get_ticks_usec();
 	user_data->last_call_duration = micro_seconds_end - micro_seconds_start;
 
-	//typedef enum PaStreamCallbackResult {
-	//	paContinue = 0, /**< Signal that the stream should continue invoking the callback and processing audio. */
-	//	paComplete = 1, /**< Signal that the stream should stop invoking the callback and finish once all output samples have played. */
-	//	paAbort = 2 /**< Signal that the stream should stop invoking the callback and finish as soon as possible. */
-	//} PaStreamCallbackResult;
-	return return_code;
+	return callback_result;
 }
 
 static void port_audio_stream_finished_callback_gd_binding_converter(void *p_user_data) {
@@ -268,6 +274,12 @@ String PortAudio::get_error_text(PortAudio::PortAudioError p_error) {
 			return "Undefined error code";
 		case NOT_PORT_AUDIO_NODE:
 			return "Provided node is not of type PortAudioNode";
+		case INVALID_FUNC_REF:
+			return "INVALID_FUNC_REF";
+		case STREAM_NOT_FOUND:
+			return "STREAM_NOT_FOUND";
+		case STREAM_USER_DATA_NOT_FOUND:
+			return "STREAM_USER_DATA_NOT_FOUND";
 	}
 	return String(Pa_GetErrorText(p_error));
 }
@@ -292,6 +304,9 @@ int PortAudio::get_default_host_api() {
 
 Dictionary PortAudio::get_host_api_info(int p_host_api) {
 	const PaHostApiInfo *pa_api_info = Pa_GetHostApiInfo(p_host_api);
+	if (pa_api_info == NULL) {
+		// TODO error
+	}
 	Dictionary api_info;
 	api_info["struct_version"] = pa_api_info->structVersion;
 	api_info["type"] = (int)pa_api_info->type; // TODO enum
@@ -312,6 +327,10 @@ int PortAudio::host_api_device_index_to_device_index(int p_host_api, int p_host_
 
 Dictionary PortAudio::get_last_host_error_info() {
 	const PaHostErrorInfo *pa_host_error_info = Pa_GetLastHostErrorInfo();
+	if (pa_host_error_info == NULL) {
+		// TODO error
+		return Dictionary();
+	}
 	Dictionary host_error_info;
 	host_error_info["host_api_type"] = (int)pa_host_error_info->hostApiType;
 	host_error_info["error_code"] = (int64_t)pa_host_error_info->errorCode;
@@ -333,6 +352,10 @@ int PortAudio::get_default_output_device() {
 
 Dictionary PortAudio::get_device_info(int p_device_index) {
 	const PaDeviceInfo *pa_device_info = Pa_GetDeviceInfo((PaDeviceIndex)p_device_index);
+	if (pa_device_info == NULL) {
+		// TODO error 
+		return Dictionary();
+	}
 	Dictionary device_info;
 	device_info["struct_version"] = pa_device_info->structVersion;
 	device_info["name"] = String(pa_device_info->name);
@@ -380,6 +403,13 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	const PaStreamParameters *pa_input_parameter_ptr = NULL;
 	Ref<PortAudioStreamParameter> input_parameter = p_stream->get_input_stream_parameter();
 	if (input_parameter.is_valid()) {
+		PaSampleFormat pa_sample_format = get_sample_format(input_parameter->get_sample_format());
+		PaError sample_size = Pa_GetSampleSize(pa_sample_format);
+		if (sample_size <= 0) {
+			return get_error(sample_size);
+		}
+		user_data->input_channel_count = input_parameter->get_channel_count();
+		user_data->input_sample_size = (int)sample_size;
 		const PaStreamParameters pa_input_parameter = {
 			input_parameter->get_device_index(),
 			input_parameter->get_channel_count(),
@@ -397,10 +427,17 @@ PortAudio::PortAudioError PortAudio::open_stream(Ref<PortAudioStream> p_stream, 
 	const PaStreamParameters *pa_output_parameter_ptr = NULL;
 	Ref<PortAudioStreamParameter> output_parameter = p_stream->get_output_stream_parameter();
 	if (output_parameter.is_valid()) {
+		PaSampleFormat pa_sample_format = get_sample_format(output_parameter->get_sample_format());
+		PaError sample_size = Pa_GetSampleSize(pa_sample_format);
+		if (sample_size <= 0) {
+			return get_error(sample_size);
+		}
+		user_data->output_channel_count = output_parameter->get_channel_count();
+		user_data->output_sample_size = (int)sample_size;
 		const PaStreamParameters pa_output_parameter = {
 			output_parameter->get_device_index(),
 			output_parameter->get_channel_count(),
-			get_sample_format(output_parameter->get_sample_format()),
+			pa_sample_format,
 			output_parameter->get_suggested_latency(),
 			output_parameter->get_host_api_specific_stream_info(),
 		};
@@ -440,11 +477,19 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
 	user_data->audio_callback_data.instance();
 	user_data->audio_callback_data->set_user_data(p_user_data);
 
+	PaSampleFormat pa_sample_format = get_sample_format(p_stream->get_sample_format());
+	PaError sample_size = Pa_GetSampleSize(pa_sample_format);
+	if (sample_size <= 0) {
+		return get_error(sample_size);
+	}
+
 	if (p_stream->get_input_channel_count() > 0) {
 		Ref<StreamPeerBuffer> input_buffer;
 		input_buffer.instance();
 		input_buffer->resize(p_stream->get_frames_per_buffer());
 		user_data->audio_callback_data->set_input_buffer(input_buffer);
+		user_data->input_sample_size = (int)sample_size;
+		user_data->input_channel_count = p_stream->get_input_channel_count();
 	}
 
 	if (p_stream->get_output_channel_count() > 0) {
@@ -452,13 +497,15 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
 		output_buffer.instance();
 		output_buffer->resize(p_stream->get_frames_per_buffer());
 		user_data->audio_callback_data->set_output_buffer(output_buffer);
+		user_data->output_sample_size = (int)sample_size;
+		user_data->output_channel_count = p_stream->get_output_channel_count();
 	}
 
 	PaStream *stream;
 	PaError err = Pa_OpenDefaultStream(&stream,
 			p_stream->get_input_channel_count(),
 			p_stream->get_output_channel_count(),
-			get_sample_format(p_stream->get_sample_format()),
+			pa_sample_format,
 			p_stream->get_sample_rate(),
 			p_stream->get_frames_per_buffer(),
 			&port_audio_callback_gd_binding_converter,
@@ -596,7 +643,61 @@ void PortAudio::sleep(unsigned int p_ms) {
 	Pa_Sleep(p_ms);
 }
 
+PortAudio::PortAudioError PortAudio::util_device_index_to_host_api_index(int p_device_index) {
+	const PaDeviceInfo *pa_device_info = Pa_GetDeviceInfo((PaDeviceIndex)p_device_index);
+	if (pa_device_info == NULL) {
+		return PortAudioError::INVALID_DEVICE;
+	}
+	return (PortAudio::PortAudioError)pa_device_info->hostApi;
+}
+
+PortAudio::PortAudioError PortAudio::util_enable_exclusive_mode(Ref<PortAudioStreamParameter> p_stream_parameter) {
+	int device_index = p_stream_parameter->get_device_index();
+	const PaDeviceInfo *pa_device_info = Pa_GetDeviceInfo((PaDeviceIndex)device_index);
+	if (pa_device_info == NULL) {
+		return PortAudioError::INVALID_DEVICE;
+	}
+	const PaHostApiInfo *pa_api_info = Pa_GetHostApiInfo(pa_device_info->hostApi);
+	if (pa_api_info == NULL) {
+		return PortAudioError::HOST_API_NOT_FOUND;
+	}
+	if (pa_api_info->type == paWASAPI) {
+		PaWasapiStreamInfo *wasapiInfo = (PaWasapiStreamInfo *)memalloc(sizeof(PaWasapiStreamInfo));
+		wasapiInfo->size = sizeof(PaWasapiStreamInfo);
+		wasapiInfo->hostApiType = paWASAPI;
+		wasapiInfo->version = 1;
+		wasapiInfo->flags = (paWinWasapiExclusive | paWinWasapiThreadPriority);
+		wasapiInfo->threadPriority = eThreadPriorityProAudio;
+		p_stream_parameter->set_host_api_specific_stream_info(wasapiInfo);
+		return PortAudioError::NO_ERROR;
+	}
+	return PortAudioError::INVALID_HOST_API;
+}
+
+void PortAudio::util_insert_buffer(Ref<StreamPeerBuffer> p_source, int p_source_offset, Ref<StreamPeerBuffer> p_destination, int p_destination_offset, int p_length) {
+	PoolVector<uint8_t> src = p_source->get_data_array();
+	PoolVector<uint8_t>::Read r = src.read();
+	p_destination->seek(p_destination_offset);
+	p_destination->put_data(&r[p_source_offset], p_length);
+	r.release();
+}
+
+void PortAudio::util_write_buffer(Ref<StreamPeerBuffer> p_source, Ref<StreamPeerBuffer> p_destination, int p_length) {
+	int src_position = p_source->get_position();
+	int dst_position = p_destination->get_position();
+	if (src_position + p_length > p_source->get_size()) {
+		p_length = p_source->get_size() - src_position;
+		if (p_length <= 0) {
+			return;
+		}
+	}
+	util_insert_buffer(p_source, src_position, p_destination, dst_position, p_length);
+	p_source->seek(src_position + p_length);
+	p_destination->seek(dst_position + p_length);
+}
+
 void PortAudio::_bind_methods() {
+	// PA_* bindings
 	ClassDB::bind_method(D_METHOD("get_version"), &PortAudio::get_version);
 	ClassDB::bind_method(D_METHOD("get_version_text"), &PortAudio::get_version_text);
 	ClassDB::bind_method(D_METHOD("get_version_info"), &PortAudio::get_version_info);
@@ -633,10 +734,19 @@ void PortAudio::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_sample_size", "sample_format"), &PortAudio::get_sample_size);
 	ClassDB::bind_method(D_METHOD("sleep", "ms"), &PortAudio::sleep);
 
-	// PortAudioError
+	// Util
+	ClassDB::bind_method(D_METHOD("util_device_index_to_host_api_index", "device_index"), &PortAudio::util_device_index_to_host_api_index);
+	ClassDB::bind_method(D_METHOD("util_enable_exclusive_mode", "stream_parameter"), &PortAudio::util_enable_exclusive_mode);
+	ClassDB::bind_method(D_METHOD("util_insert_buffer", "source", "source_offset", "destination", "destination_offset", "length"), &PortAudio::util_insert_buffer);
+	ClassDB::bind_method(D_METHOD("util_write_buffer", "source", "destination", "length"), &PortAudio::util_write_buffer);
+
+	// PortAudioError - Custom
 	BIND_ENUM_CONSTANT(UNDEFINED);
 	BIND_ENUM_CONSTANT(NOT_PORT_AUDIO_NODE);
-
+	BIND_ENUM_CONSTANT(INVALID_FUNC_REF);
+	BIND_ENUM_CONSTANT(STREAM_NOT_FOUND);
+	BIND_ENUM_CONSTANT(STREAM_USER_DATA_NOT_FOUND);
+	// PortAudioError - Origninal
 	BIND_ENUM_CONSTANT(NO_ERROR);
 	BIND_ENUM_CONSTANT(NOT_INITIALIZED);
 	BIND_ENUM_CONSTANT(UNANTICIPATED_HOST_ERROR);
@@ -667,6 +777,11 @@ void PortAudio::_bind_methods() {
 	BIND_ENUM_CONSTANT(CAN_NOT_WRITE_TO_AN_INPUT_ONLY_STREAM);
 	BIND_ENUM_CONSTANT(INCOMPATIBLE_STREAM_HOST_API);
 	BIND_ENUM_CONSTANT(BAD_BUFFER_PTR);
+
+	// PortAudioCallbackResult
+	BIND_ENUM_CONSTANT(CONTINUE);
+	BIND_ENUM_CONSTANT(COMPLETE);
+	BIND_ENUM_CONSTANT(ABORT);
 }
 
 PortAudio::PortAudio() {
@@ -683,15 +798,4 @@ PortAudio::~PortAudio() {
 		print_error(vformat("PortAudio::PortAudio: failed to terminate (%d)", err));
 	}
 	data_map.clear();
-}
-
-PortAudio::PortAudioError PortAudio::enable_exclusive_mode(Ref<PortAudioStreamParameter> p_stream_parameter) {
-	struct PaWasapiStreamInfo wasapiInfo;
-	wasapiInfo.size = sizeof(PaWasapiStreamInfo);
-	wasapiInfo.hostApiType = paWASAPI;
-	wasapiInfo.version = 1;
-	wasapiInfo.flags = (paWinWasapiExclusive | paWinWasapiThreadPriority);
-	wasapiInfo.threadPriority = eThreadPriorityProAudio;
-	p_stream_parameter->set_host_api_specific_stream_info(&wasapiInfo);
-	return PortAudioError::NO_ERROR;
 }

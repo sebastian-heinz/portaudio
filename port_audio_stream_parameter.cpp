@@ -1,5 +1,7 @@
 #include "port_audio_stream_parameter.h"
 
+#include <core/os/memory.h>
+
 void PortAudioStreamParameter::set_device_index(int p_device_index) {
 	device_index = p_device_index;
 }
@@ -75,4 +77,7 @@ PortAudioStreamParameter::PortAudioStreamParameter() {
 }
 
 PortAudioStreamParameter::~PortAudioStreamParameter() {
+	if (host_api_specific_stream_info != NULL) {
+		memfree(host_api_specific_stream_info);
+	}
 }

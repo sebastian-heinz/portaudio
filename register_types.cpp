@@ -5,8 +5,9 @@
 #include "./port_audio_stream.h"
 #include "./port_audio_stream_parameter.h"
 
-#include "./audio/audio_reader.h"
-#include "./audio/audio_reader_wav.h"
+#include "./px/px_audio_reader.h"
+#include "./px/px_audio_reader_wav.h"
+#include "./px/px_audio_player.h"
 
 #include "./port_audio_test_node.h"
 
@@ -26,11 +27,12 @@ void register_portaudio_types() {
 	ClassDB::register_class<PortAudioStreamParameter>();
 	ClassDB::register_class<PortAudioCallbackData>();
 
-	// Audio Reader
-	ClassDB::register_virtual_class<AudioReader>();
-	ClassDB::register_class<AudioReaderWav>();
+	// Port Audio Extended
+	ClassDB::register_class<PxAudioPlayer>();
+	ClassDB::register_virtual_class<PxAudioReader>();
+	ClassDB::register_class<PxAudioReaderWav>();
 
-	// Custom Nodes
+	// Nodes
 	ClassDB::register_class<PortAudioTestNode>();
 }
 

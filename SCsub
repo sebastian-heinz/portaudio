@@ -176,8 +176,9 @@ sources = [
 "./port_audio_stream_parameter.cpp",
 "./port_audio_callback_data.cpp",
 
-"./audio/audio_reader.cpp",
-"./audio/audio_reader_wav.cpp",
+"./px/px_audio_reader.cpp",
+"./px/px_audio_reader_wav.cpp",
+"./px/px_audio_player.cpp",
 
 "./port_audio_test_node.cpp",
 ]

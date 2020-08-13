@@ -5,6 +5,7 @@
 
 #include <core/func_ref.h>
 #include <core/object.h>
+#include <core/io/stream_peer.h>
 
 #include <map>
 
@@ -50,6 +51,12 @@ public:
 		CAN_NOT_WRITE_TO_AN_INPUT_ONLY_STREAM,
 		INCOMPATIBLE_STREAM_HOST_API,
 		BAD_BUFFER_PTR
+	};
+
+	enum PortAudioCallbackResult {
+		CONTINUE = 0,
+		COMPLETE = 1,
+		ABORT = 2,
 	};
 
 private:
@@ -99,13 +106,16 @@ public:
 	PortAudio::PortAudioError get_sample_size(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format);
 	void sleep(unsigned int p_ms);
 
-	PortAudio::PortAudioError enable_exclusive_mode(Ref<PortAudioStreamParameter> p_stream_parameter);
-	
+	PortAudio::PortAudioError util_device_index_to_host_api_index(int p_device_index);
+	PortAudio::PortAudioError util_enable_exclusive_mode(Ref<PortAudioStreamParameter> p_stream_parameter);
+	void util_insert_buffer(Ref<StreamPeerBuffer> p_source, int p_source_offset, Ref<StreamPeerBuffer> p_destination, int p_destination_offset, int p_length);
+	void util_write_buffer(Ref<StreamPeerBuffer> p_source, Ref<StreamPeerBuffer> p_destination, int p_length);
 
 	PortAudio();
 	~PortAudio();
 };
 
 VARIANT_ENUM_CAST(PortAudio::PortAudioError);
+VARIANT_ENUM_CAST(PortAudio::PortAudioCallbackResult);
 
 #endif
