@@ -221,8 +221,21 @@ which violate the above in your Lua user functions. . That said, running Lua in 
 Exposing PortAudio to GDScript will have some performance overhead and introduces additional audio latency. If you are looking to get the most out of PortAudio it would be best to utilzie the CallbackFunction in C++. To get a better understanding of how long the callback took, the duration in μs (Microsecond) can be obtained from the callback data `PortAudioCallbackData::get_last_call_duration()`.
 
 ### Frames Per Buffer
-The callback provides a `frames_per_buffer`-variable. This does not represent bytes. Depending on the format (FLOAT_32 = 4bytes, INT_16 = 2bytes) you can calculate the frame size by bits (32 / 8) ot (16 / 8) to arrive at the required bytes per frames.  
-Utilizing the blocking mode via `write()` it could result in slow and crackling audio.
+The callback provides a `frames_per_buffer`-variable. This does not represent bytes. Depending on the format (FLOAT_32 = 4bytes, INT_16 = 2bytes) and channels the buffer size can be calculated.
+```
+bytes_per_channel = (FLOAT_32 = 4 bytes) (INT_16 = 2byte) (INT_8 = 1byte)
+buffer_size = frames_per_buffer * channels * bytes_per_channel
+```
+Ensure that each callback the buffer is filled up correctly or it could result in slow and crackling audio. The same also applies when utilizing blocking mode via `write()`.
+
+### Time spend in Callback
+If the execution time of the callback function is longer than the playback data provided to the buffer the audio might also become slow and crackling.
+To calculate the playback duration of the buffer the requested frames can be divided by the sample rate.
+```
+time_request_seconds = frames_per_buffer / sample_rate
+```
+The execution time of the audio loop has to be faster than this time.
+
 
 ## TODO
 - doc_classes need to be written for GDScript documentation.
