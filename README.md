@@ -126,7 +126,7 @@ func audio_callback(data : PortAudioCallbackData):
 	for i in range (samples):
 		var sample : float = sin(2 * PI * float(i) / ( sample_rate / frequenzy_hz))
 		buff.put_float(sample)
-	return 0
+	return PortAudio.CONTINUE
 
 ```
 
