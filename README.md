@@ -134,17 +134,17 @@ func audio_callback(data : PortAudioCallbackData):
 ```
 extends Node
 
-class_name AudioPLayer
+class_name AudioPlayer
 
 func _ready():
-	play_file("C:/file_example_WAV_1MG.wav")
+	play_file("C:/test.wav")
 	return
 
 func play_file(file_path : String):
-	var audio_reader : AudioReader = AudioReaderWav.new()
+	var audio_reader = PxAudioReaderWav.new()
 	var err = audio_reader.read_file(file_path)
-	if err != AudioReader.NO_ERROR:
-		push_error("play_file: %s" % err)
+	if err != PxAudioReader.NO_ERROR:
+		push_error("read_file: %s" % err)
 		return
 	
 	var device_index = PortAudio.get_default_output_device()
@@ -165,7 +165,7 @@ func play_file(file_path : String):
 	var audio_callback = funcref(self, "audio_callback")
 	err = PortAudio.open_stream(stream, audio_callback, audio_reader)
 	if err != PortAudio.NO_ERROR:
-		push_error("start_stream: %s" % err)
+		push_error("open_stream: %s" % err)
 		return
 		
 	err = PortAudio.start_stream(stream)
@@ -176,7 +176,7 @@ func play_file(file_path : String):
 # Audio Callback
 func audio_callback(data : PortAudioCallbackData):
 	
-	var audio_reader : AudioReader = data.get_user_data()
+	var audio_reader : PxAudioReader = data.get_user_data()
 	var sample_buffer = audio_reader.get_sample_buffer()
 
 	var buff = data.get_output_buffer()
@@ -191,9 +191,10 @@ func audio_callback(data : PortAudioCallbackData):
 				buff.put_u8(sample_buffer.get_u8())
 		frames_written += 1
 	if sample_buffer.get_available_bytes() == 0:
-		return 1
+		return PortAudio.COMPLETE
 	
-	return 0
+	return PortAudio.CONTINUE
+
 ```
 
 ### C++
