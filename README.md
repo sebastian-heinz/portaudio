@@ -13,7 +13,7 @@ module for godot
   - [Nodes](#nodes)
   - [Example GDScripts](#example-gdscripts)
   - [C++](#c)
-  - PortAudio Extended (Px)[Audio File Reading]
+  - [PortAudio Extended (Px)](#portaudio-extended-px)
     - [Audio File Reading](#audio-file-reading)
 - [Gotchas and Tips](#gotchas-and-tips)
 - [TODO](#todo)
