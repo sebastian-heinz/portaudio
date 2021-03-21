@@ -1,6 +1,6 @@
 #include "port_audio_stream_parameter.h"
 
-#include <core/os/memory.h>
+#include "core/os/memory.h"
 
 void PortAudioStreamParameter::set_device_index(int p_device_index) {
 	device_index = p_device_index;
@@ -55,7 +55,7 @@ void PortAudioStreamParameter::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "device_index"), "set_device_index", "get_device_index");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "channel_count"), "set_channel_count", "get_channel_count");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "sample_format", PROPERTY_HINT_ENUM, "FLOAT_32, INT_32, INT_24, INT_16, INT_8, U_INT_8, CUSTOM_FORMAT, NON_INTERLEAVED"), "set_sample_format", "get_sample_format");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "suggested_latency"), "set_suggested_latency", "get_suggested_latency");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "suggested_latency"), "set_suggested_latency", "get_suggested_latency");
 
 	// PortAudioSampleSize
 	BIND_ENUM_CONSTANT(FLOAT_32);
@@ -73,11 +73,11 @@ PortAudioStreamParameter::PortAudioStreamParameter() {
 	channel_count = 0;
 	sample_format = PortAudioStreamParameter::PortAudioSampleFormat::FLOAT_32;
 	suggested_latency = 0;
-	host_api_specific_stream_info = NULL;
+	host_api_specific_stream_info = nullptr;
 }
 
 PortAudioStreamParameter::~PortAudioStreamParameter() {
-	if (host_api_specific_stream_info != NULL) {
+	if (host_api_specific_stream_info != nullptr) {
 		memfree(host_api_specific_stream_info);
 	}
 }

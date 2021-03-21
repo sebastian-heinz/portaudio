@@ -13,8 +13,6 @@ module for godot
   - [Nodes](#nodes)
   - [Example GDScripts](#example-gdscripts)
   - [C++](#c)
-  - [PortAudio Extended (Px)](#portaudio-extended-px)
-    - [Audio File Reading](#audio-file-reading)
 - [Gotchas and Tips](#gotchas-and-tips)
 - [TODO](#todo)
 - [Dependencies](#dependencies)
@@ -60,7 +58,7 @@ When building godot it will check if the host api is supported for the platform 
 | JACK      | Not Available | Not Tested    | Not Available |
 | ALSA      | Not Available | Not Tested    | Not Available |
 | ASIHPI    | Not Available | Not Tested    | Not Available |
-| COREAUDIO | Not Available | Not Available | Not Tested    |
+| COREAUDIO | Not Available | Not Available | Working       |
 | OSS       | Not Available | Not Tested    | Not Available |
 
 *1) requires that the enduser has asio drivers installed (ex. ASIO4ALL)  
@@ -130,73 +128,6 @@ func audio_callback(data : PortAudioCallbackData):
 
 ```
 
-#### WAV Player:
-```
-extends Node
-
-class_name AudioPlayer
-
-func _ready():
-	play_file("C:/test.wav")
-	return
-
-func play_file(file_path : String):
-	var audio_reader = PxAudioReaderWav.new()
-	var err = audio_reader.read_file(file_path)
-	if err != PxAudioReader.NO_ERROR:
-		push_error("read_file: %s" % err)
-		return
-	
-	var device_index = PortAudio.get_default_output_device()
-	var device_info = PortAudio.get_device_info(device_index)
-	
-	var out_p = PortAudioStreamParameter.new()
-	out_p.set_device_index(device_index)
-	out_p.set_channel_count(audio_reader.get_channels())
-	out_p.set_sample_format(audio_reader.get_format())
-	out_p.set_suggested_latency(device_info["default_low_output_latency"])
-	
-	var stream = PortAudioStream.new()
-	stream.set_output_stream_parameter(out_p)
-	stream.set_sample_format(audio_reader.get_format())
-	stream.set_output_channel_count(audio_reader.get_channels())
-	stream.set_sample_rate(audio_reader.get_sample_rate())
-	
-	var audio_callback = funcref(self, "audio_callback")
-	err = PortAudio.open_stream(stream, audio_callback, audio_reader)
-	if err != PortAudio.NO_ERROR:
-		push_error("open_stream: %s" % err)
-		return
-		
-	err = PortAudio.start_stream(stream)
-	if err != PortAudio.NO_ERROR:
-		push_error("start_stream: %s" % err)
-		return
-
-# Audio Callback
-func audio_callback(data : PortAudioCallbackData):
-	
-	var audio_reader : PxAudioReader = data.get_user_data()
-	var sample_buffer = audio_reader.get_sample_buffer()
-
-	var buff = data.get_output_buffer()
-	var frames_written = 0
-	while frames_written < data.get_frames_per_buffer() * audio_reader.get_channels():
-		match audio_reader.get_format():
-			PortAudioStreamParameter.FLOAT_32:
-				buff.put_float(sample_buffer.get_float())
-			PortAudioStreamParameter.INT_16:
-				buff.put_16(sample_buffer.get_16())
-			PortAudioStreamParameter.INT_8:
-				buff.put_u8(sample_buffer.get_u8())
-		frames_written += 1
-	if sample_buffer.get_available_bytes() == 0:
-		return PortAudio.COMPLETE
-	
-	return PortAudio.CONTINUE
-
-```
-
 ### C++
 This module will add PortAudio to the include path. It allows to work with PortAudio s library directly:   
 ```
@@ -204,16 +135,6 @@ This module will add PortAudio to the include path. It allows to work with PortA
 ```
 
 For tutorials on how to use PortAudio have a look at the official documentation: http://portaudio.com/docs/v19-doxydocs/initializing_portaudio.html
-
-### PortAudio Extended (Px)
-While PortAudio allows for a great deal of customized audio options, 
-the pipeline to provide audio data and make use of playing audio via PortAudio is nonexistend and up to the user. 
-This module includes additional functionality to support audio reading and playback, 
-to allow for an easier entry to utilize PortAudio with Godot. 
-These classes are prefixed by `Px*`.
-
-#### Audio File Reading
-A `PxAudioReaderWav` exists that can read `.wav` files and extract the PCM samples for streaming to `PortAudio`
 
 ## Gotchas and Tips
 
@@ -266,16 +187,14 @@ PortAudio.COMPLETE
 PortAudio.ABORT
 ```
 
-
 ## TODO
 - doc_classes need to be written for GDScript documentation.
 - [WIN] [WDMKS]-driver clashes with godot imports. (error LNK2005: KSDATAFORMAT_SUBTYPE_MIDI already defined in dxguid.lib(dxguid.obj))
 - [LINUX] build pipeline untested.
-- [OSX] build pipeline untested.
 
 ## Dependencies
-- Godot: `3.2`
-- PortAudio: `pa_stable_v190600_20161030`
+- Godot: `4.x`
+- PortAudio: https://github.com/PortAudio/portaudio/commit/eec7bb739771381ab698a6a611d933bdd72cbd8f
 - ASIO SDK: `2.0+` (optional)
 
 ## Links  
@@ -285,6 +204,7 @@ https://github.com/godotengine/godot
 Portaudio:  
 https://app.assembla.com/spaces/portaudio/git/source  
 http://www.portaudio.com/  
+https://github.com/PortAudio/portaudio
 
 ASIO SDK 2.0:  
 https://www.steinberg.net/en/company/developers.html  

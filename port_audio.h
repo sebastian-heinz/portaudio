@@ -3,9 +3,8 @@
 
 #include "port_audio_stream.h"
 
-#include <core/func_ref.h>
-#include <core/object.h>
-#include <core/io/stream_peer.h>
+#include "core/object/object.h"
+#include "core/io/stream_peer.h"
 
 #include <map>
 
@@ -87,10 +86,10 @@ public:
 	int get_default_output_device();
 	Dictionary get_device_info(int p_device_index);
 	PortAudio::PortAudioError is_format_supported(Ref<PortAudioStreamParameter> p_input_stream_parameter, Ref<PortAudioStreamParameter> p_output_stream_parameter, double p_sample_rate);
-	PortAudio::PortAudioError open_stream(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_audio_callback, Variant p_user_data);
-	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, PortAudioStreamParameter::PortAudioSampleFormat p_sample_format, Ref<FuncRef> p_audio_callback, Variant p_user_data);
+	PortAudio::PortAudioError open_stream(Ref<PortAudioStream> p_stream, Callable p_audio_callback, Variant p_user_data);
+	PortAudio::PortAudioError open_default_stream(Ref<PortAudioStream> p_stream, PortAudioStreamParameter::PortAudioSampleFormat p_sample_format, Callable p_audio_callback, Variant p_user_data);
 	PortAudio::PortAudioError close_stream(Ref<PortAudioStream> p_stream);
-	PortAudio::PortAudioError set_stream_finished_callback(Ref<PortAudioStream> p_stream, Ref<FuncRef> p_stream_finished_callback);
+	PortAudio::PortAudioError set_stream_finished_callback(Ref<PortAudioStream> p_stream, Callable p_stream_finished_callback);
 	PortAudio::PortAudioError start_stream(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError stop_stream(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError abort_stream(Ref<PortAudioStream> p_stream);
@@ -99,8 +98,8 @@ public:
 	Dictionary get_stream_info(Ref<PortAudioStream> p_stream);
 	double get_stream_time(Ref<PortAudioStream> p_stream);
 	double get_stream_cpu_load(Ref<PortAudioStream> p_stream);
-	PortAudio::PortAudioError read_stream(Ref<PortAudioStream> p_stream, PoolVector<uint8_t> p_buffer, uint64_t p_frames);
-	PortAudio::PortAudioError write_stream(Ref<PortAudioStream> p_stream, PoolVector<uint8_t> p_buffer, uint64_t p_frames);
+	PortAudio::PortAudioError read_stream(Ref<PortAudioStream> p_stream, PackedByteArray p_buffer, uint64_t p_frames);
+	PortAudio::PortAudioError write_stream(Ref<PortAudioStream> p_stream, PackedByteArray p_buffer, uint64_t p_frames);
 	int64_t get_stream_read_available(Ref<PortAudioStream> p_stream);
 	int64_t get_stream_write_available(Ref<PortAudioStream> p_stream);
 	PortAudio::PortAudioError get_sample_size(PortAudioStreamParameter::PortAudioSampleFormat p_sample_format);

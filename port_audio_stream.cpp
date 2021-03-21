@@ -105,7 +105,7 @@ void PortAudioStream::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "input_channel_count"), "set_input_channel_count", "get_input_channel_count");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_channel_count"), "set_output_channel_count", "get_output_channel_count");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "sample_format", PROPERTY_HINT_ENUM, "FLOAT_32, INT_32, INT_24, INT_16, INT_8, U_INT_8, CUSTOM_FORMAT, NON_INTERLEAVED"), "set_sample_format", "get_sample_format");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "sample_rate"), "set_sample_rate", "get_sample_rate");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "sample_rate"), "set_sample_rate", "get_sample_rate");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "frames_per_buffer"), "set_frames_per_buffer", "get_frames_per_buffer");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "input_stream_parameter", PROPERTY_HINT_RESOURCE_TYPE, "PortAudioStreamParameter"), "set_input_stream_parameter", "get_input_stream_parameter");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "output_stream_parameter", PROPERTY_HINT_RESOURCE_TYPE, "PortAudioStreamParameter"), "set_output_stream_parameter", "get_output_stream_parameter");

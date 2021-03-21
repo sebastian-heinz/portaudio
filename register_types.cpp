@@ -5,16 +5,12 @@
 #include "./port_audio_stream.h"
 #include "./port_audio_stream_parameter.h"
 
-#include "./px/px_audio_reader.h"
-#include "./px/px_audio_reader_wav.h"
-#include "./px/px_audio_player.h"
-
 #include "./port_audio_test_node.h"
 
-#include <core/class_db.h>
-#include <core/engine.h>
+#include "core/object/class_db.h"
+#include "core/config/engine.h"
 
-static PortAudio *port_audio = NULL;
+static PortAudio *port_audio = nullptr;
 
 void register_portaudio_types() {
 	// Singleton
@@ -26,11 +22,6 @@ void register_portaudio_types() {
 	ClassDB::register_class<PortAudioStream>();
 	ClassDB::register_class<PortAudioStreamParameter>();
 	ClassDB::register_class<PortAudioCallbackData>();
-
-	// Port Audio Extended
-	ClassDB::register_class<PxAudioPlayer>();
-	ClassDB::register_virtual_class<PxAudioReader>();
-	ClassDB::register_class<PxAudioReaderWav>();
 
 	// Nodes
 	ClassDB::register_class<PortAudioTestNode>();

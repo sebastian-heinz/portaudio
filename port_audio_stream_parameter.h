@@ -1,7 +1,7 @@
 #ifndef PORT_AUDIO_STREAM_PARAMETER_H
 #define PORT_AUDIO_STREAM_PARAMETER_H
 
-#include <core/resource.h>
+#include "core/io/resource.h"
 
 class PortAudioStreamParameter : public Resource {
 	GDCLASS(PortAudioStreamParameter, Resource);

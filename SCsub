@@ -6,166 +6,183 @@ import sys
 Import('env')
 module_env = env.Clone()
 
-# only APIs that are not commented will be build
-use_host_api = [
-# "skeleton",  # Test Host Api for developers
-  "asio",      # ASIO (Audio Streaming Input Output)
-  "dsound",    # Direct Sound
-# "jack",      #
-  "wasapi",    # (WASAPI) Windows Audio Session API 
-# "wdmks",     # (WDM/KS) Windows Driver Model/Kernel Streaming
-  "wmme",      #
-# "alsa",      #
-# "asihpi",    #
-# "coreaudio", #
-# "oss",       #
-]
 
-# Portaudio sources
-#env.Append(CPPDEFINES=["NEED_LONG_INT"])
+# Portaudio Setup - Start
+
+# define PA Version
 module_env.Append(CPPDEFINES=[('PA_GIT_REVISION', 'godot-module-396fe4b')])
 
 # add to Godot include path allows to use PortAudio directly via `#include <portaudio.h>`
-env.Append(CPPPATH=["#modules/portaudio/portaudio/include"])
+env.Append(CPPPATH=["#modules/portaudio/include"])
+
+pa_root = "./portaudio"
+asio_root = "./asiosdk"
+use_host_api = [ # only APIs that are not commented will be build
+  #"skeleton", # Test Host Api for developers
+  "asio",      # ASIO (Audio Streaming Input Output)
+  "dsound",    # Direct Sound
+  #"jack",     #
+  "wasapi",    # (WASAPI) Windows Audio Session API
+  #"wdmks",    # (WDM/KS) Windows Driver Model/Kernel Streaming
+  "wmme",      #
+  #"alsa" ,    #
+  #"asihpi",   #
+  "coreaudio", #
+  #"oss",      #
+]
+#env.Append(CPPDEFINES=["NEED_LONG_INT"])
 
 available_host_apis = []
 available_host_apis.append("skeleton")
 
 pa_sources = [
-"./portaudio/src/common/pa_allocation.c",
-"./portaudio/src/common/pa_converters.c",
-"./portaudio/src/common/pa_cpuload.c",
-"./portaudio/src/common/pa_debugprint.c",
-"./portaudio/src/common/pa_dither.c",
-"./portaudio/src/common/pa_front.c",
-"./portaudio/src/common/pa_process.c",
-"./portaudio/src/common/pa_ringbuffer.c",
-"./portaudio/src/common/pa_stream.c",
-"./portaudio/src/common/pa_trace.c",
-]
-module_env.Append(CPPPATH=["portaudio/include"])
-module_env.Append(CPPPATH=["portaudio/src/common"])
+  pa_root + "/src/common/pa_allocation.c",
+  pa_root + "/src/common/pa_converters.c",
+  pa_root + "/src/common/pa_cpuload.c",
+  pa_root + "/src/common/pa_debugprint.c",
+  pa_root + "/src/common/pa_dither.c",
+  pa_root + "/src/common/pa_front.c",
+  pa_root + "/src/common/pa_process.c",
+  pa_root + "/src/common/pa_ringbuffer.c",
+  pa_root + "/src/common/pa_stream.c",
+  pa_root + "/src/common/pa_trace.c",
+  ]
+module_env.Append(CPPPATH=[pa_root + "/include"])
+module_env.Append(CPPPATH=[pa_root + "/src/common"])
 
 if module_env["platform"] == "windows":
   win_sources = [
-  "./portaudio/src/os/win/pa_win_coinitialize.c",
-  "./portaudio/src/os/win/pa_win_hostapis.c",
-  "./portaudio/src/os/win/pa_win_util.c",
-  "./portaudio/src/os/win/pa_win_waveformat.c",
-  "./portaudio/src/os/win/pa_win_wdmks_utils.c",
-  "./portaudio/src/os/win/pa_x86_plain_converters.c",
-  ]
+    pa_root + "/src/os/win/pa_win_coinitialize.c",
+    pa_root + "/src/os/win/pa_win_hostapis.c",
+    pa_root + "/src/os/win/pa_win_util.c",
+    pa_root + "/src/os/win/pa_win_waveformat.c",
+    pa_root + "/src/os/win/pa_win_wdmks_utils.c",
+    pa_root + "/src/os/win/pa_x86_plain_converters.c",
+    ]
   available_host_apis.append("asio")
   available_host_apis.append("dsound")
   available_host_apis.append("wasapi")
   available_host_apis.append("wdmks")
   available_host_apis.append("wmme")
-  module_env.Append(CPPPATH=["portaudio/src/os/win"])
+  module_env.Append(CPPPATH=[pa_root + "/src/os/win"])
   pa_sources.append(win_sources)
-  
+
 if module_env["platform"] == "x11":
   x11_sources = [
-  "./portaudio/src/os/unix/pa_unix_hostapis.c",
-  "./portaudio/src/os/unix/pa_unix_util.c",
-  ]
+    pa_root + "/src/os/unix/pa_unix_hostapis.c",
+    pa_root + "/src/os/unix/pa_unix_util.c",
+    ]
   available_host_apis.append("alsa")
   available_host_apis.append("asihpi")
   available_host_apis.append("asio")
   available_host_apis.append("jack")
   available_host_apis.append("oss")
-  module_env.Append(CPPPATH=["portaudio/src/os/unix"])
+  module_env.Append(CPPPATH=[pa_root + "/src/os/unix"])
   pa_sources.append(x11_sources)
 
 if module_env["platform"] == "osx":
   osx_sources = [
-  "./portaudio/src/os/unix/pa_unix_hostapis.c",
-  "./portaudio/src/os/unix/pa_unix_util.c",
-  ]
+    pa_root + "/src/os/unix/pa_unix_hostapis.c",
+    pa_root + "/src/os/unix/pa_unix_util.c",
+    ]
   available_host_apis.append("coreaudio")
-  module_env.Append(CPPPATH=["portaudio/src/os/unix"])
+  module_env.Append(CPPPATH=[pa_root + "/src/os/unix"])
   pa_sources.append(osx_sources)
+  env.Append(LINKFLAGS=[
+    "-framework",
+    "CoreFoundation",
+    "-framework",
+    "CoreServices",
+    "-framework",
+    "CoreAudio",
+    "-framework",
+    "AudioToolBox",
+    "-framework",
+    "AudioUnit"
+  ])
 
 host_api_sources = []
 for host_api in available_host_apis:
   if not host_api in use_host_api:
     # skip undesired host apis
     continue
-    
+
   if(host_api == "skeleton"):
     module_env.Append(CPPDEFINES=["PA_USE_SKELETON"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/skeleton"])
-    host_api_sources.append("./portaudio/src/hostapi/skeleton/pa_hostapi_skeleton.c")
-    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/skeleton"])
+    host_api_sources.append(pa_root + "/src/hostapi/skeleton/pa_hostapi_skeleton.c")
+
   if(host_api == "asio"):
-    if not os.path.exists("./asiosdk/common/asio.cpp") or not os.path.exists("./asiosdk/host/asiodrivers.cpp") or not os.path.exists("./asiosdk/host/pc/asiolist.cpp"):
+    if not os.path.exists(asio_root + "/common/asio.cpp") or not os.path.exists(asio_root + "/host/asiodrivers.cpp") or not os.path.exists(asio_root + "/host/pc/asiolist.cpp"):
       print("ASIO SDK missing")
       sys.exit(255)
     module_env.Append(CPPDEFINES=["PA_USE_ASIO"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/asio"])
-    host_api_sources.append("./portaudio/src/hostapi/asio/iasiothiscallresolver.cpp")
-    host_api_sources.append("./portaudio/src/hostapi/asio/pa_asio.cpp")
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/asio"])
+    host_api_sources.append(pa_root + "/src/hostapi/asio/iasiothiscallresolver.cpp")
+    host_api_sources.append(pa_root + "/src/hostapi/asio/pa_asio.cpp")
     # Asio SDK
-    module_env.Append(CPPPATH=["./asiosdk/common"])
-    module_env.Append(CPPPATH=["./asiosdk/host"])
-    module_env.Append(CPPPATH=["./asiosdk/host/pc"])
-    host_api_sources.append("./asiosdk/common/asio.cpp")
-    host_api_sources.append("./asiosdk/host/asiodrivers.cpp")
-    host_api_sources.append("./asiosdk/host/pc/asiolist.cpp")
-    
+    module_env.Append(CPPPATH=[asio_root + "/common"])
+    module_env.Append(CPPPATH=[asio_root + "/host"])
+    module_env.Append(CPPPATH=[asio_root + "/host/pc"])
+    host_api_sources.append(asio_root + "/common/asio.cpp")
+    host_api_sources.append(asio_root + "/host/asiodrivers.cpp")
+    host_api_sources.append(asio_root + "/host/pc/asiolist.cpp")
+
   if(host_api == "dsound"):
     module_env.Append(CPPDEFINES=["PA_USE_DS"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/dsound"])
-    host_api_sources.append("./portaudio/src/hostapi/dsound/pa_win_ds.c")
-    host_api_sources.append("./portaudio/src/hostapi/dsound/pa_win_ds_dynlink.c")
-    
-  if(host_api == "jack"):    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/dsound"])
+    host_api_sources.append(pa_root + "/src/hostapi/dsound/pa_win_ds.c")
+    host_api_sources.append(pa_root + "/src/hostapi/dsound/pa_win_ds_dynlink.c")
+
+  if(host_api == "jack"):
     module_env.Append(CPPDEFINES=["PA_USE_JACK"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/jack"])
-    host_api_sources.append("./portaudio/src/hostapi/jack/pa_jack.c")
-    
-  if(host_api == "wasapi"): 
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/jack"])
+    host_api_sources.append(pa_root + "/src/hostapi/jack/pa_jack.c")
+
+  if(host_api == "wasapi"):
     # disable Godot WASAPI driver
     env['CPPDEFINES'] = [ x for x in env['CPPDEFINES'] if 'WASAPI_ENABLED' not in x]
     module_env.Append(CPPDEFINES=["PA_USE_WASAPI"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/wasapi"])
-    host_api_sources.append("./portaudio/src/hostapi/wasapi/pa_win_wasapi.c")
-    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/wasapi"])
+    host_api_sources.append(pa_root + "/src/hostapi/wasapi/pa_win_wasapi.c")
+
   if(host_api == "wdmks"):
     module_env.Append(CPPDEFINES=["PA_USE_WDMKS"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/wdmks"])
-    host_api_sources.append("./portaudio/src/hostapi/wdmks/pa_win_wdmks.c")
-    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/wdmks"])
+    host_api_sources.append(pa_root + "/src/hostapi/wdmks/pa_win_wdmks.c")
+
   if(host_api == "wmme"):
     module_env.Append(CPPDEFINES=["PA_USE_WMME"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/wmme"])
-    host_api_sources.append("./portaudio/src/hostapi/wmme/pa_win_wmme.c")
-    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/wmme"])
+    host_api_sources.append(pa_root + "/src/hostapi/wmme/pa_win_wmme.c")
+
   if(host_api == "alsa"):
     module_env.Append(CPPDEFINES=["PA_USE_ALSA"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/alsa"])
-    host_api_sources.append("./portaudio/src/hostapi/alsa/pa_linux_alsa.c")
-    
-  if(host_api == "asihpi"):    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/alsa"])
+    host_api_sources.append(pa_root + "/src/hostapi/alsa/pa_linux_alsa.c")
+
+  if(host_api == "asihpi"):
     module_env.Append(CPPDEFINES=["PA_USE_ASIHPI"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/asihpi"])
-    host_api_sources.append("./portaudio/src/hostapi/asihpi/pa_linux_asihpi.c")
-    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/asihpi"])
+    host_api_sources.append(pa_root + "/src/hostapi/asihpi/pa_linux_asihpi.c")
+
   if(host_api == "coreaudio"):
     module_env.Append(CPPDEFINES=["PA_USE_COREAUDIO"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/coreaudio"])
-    host_api_sources.append("./portaudio/src/hostapi/coreaudio/pa_mac_core.c")
-    host_api_sources.append("./portaudio/src/hostapi/coreaudio/pa_mac_core_blocking.c")
-    host_api_sources.append("./portaudio/src/hostapi/coreaudio/pa_mac_core_old.c")
-    host_api_sources.append("./portaudio/src/hostapi/coreaudio/pa_mac_core_utilities.c")
-    
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/coreaudio"])
+    host_api_sources.append(pa_root + "/src/hostapi/coreaudio/pa_mac_core.c")
+    host_api_sources.append(pa_root + "/src/hostapi/coreaudio/pa_mac_core_blocking.c")
+    host_api_sources.append(pa_root + "/src/hostapi/coreaudio/pa_mac_core_utilities.c")
+
   if(host_api == "oss"):
     module_env.Append(CPPDEFINES=["PA_USE_OSS"])
-    module_env.Append(CPPPATH=["portaudio/src/hostapi/oss"])
-    host_api_sources.append("./portaudio/src/hostapi/oss/pa_unix_oss.c")
-    host_api_sources.append("./portaudio/src/hostapi/oss/recplay.c")
+    module_env.Append(CPPPATH=[pa_root + "/src/hostapi/oss"])
+    host_api_sources.append(pa_root + "/src/hostapi/oss/pa_unix_oss.c")
+    host_api_sources.append(pa_root + "/src/hostapi/oss/recplay.c")
 
 pa_sources.append(host_api_sources)
 module_env.add_source_files(env.modules_sources, pa_sources)
+# Portaudio Setup - End
+
 
 # Godot sources
 sources = [
@@ -175,10 +192,6 @@ sources = [
 "./port_audio_stream.cpp",
 "./port_audio_stream_parameter.cpp",
 "./port_audio_callback_data.cpp",
-
-"./px/px_audio_reader.cpp",
-"./px/px_audio_reader_wav.cpp",
-"./px/px_audio_player.cpp",
 
 "./port_audio_test_node.cpp",
 ]

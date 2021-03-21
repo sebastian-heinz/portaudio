@@ -3,7 +3,7 @@
 
 #include "port_audio_stream_parameter.h"
 
-#include <core/resource.h>
+#include "core/io/resource.h"
 
 class PortAudioStream : public Resource {
 	GDCLASS(PortAudioStream, Resource);
