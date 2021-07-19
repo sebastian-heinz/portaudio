@@ -413,7 +413,7 @@ PortAudio::open_stream(Ref<PortAudioStream> p_stream, Callable p_audio_callback,
     CallbackUserDataGdBinding *user_data = new CallbackUserDataGdBinding();
     user_data->port_audio = this;
     user_data->audio_callback = p_audio_callback;
-    user_data->audio_callback_data.instance();
+    user_data->audio_callback_data.instantiate();
     user_data->audio_callback_data->set_user_data(p_user_data);
 
     const PaStreamParameters *pa_input_parameter_ptr = nullptr;
@@ -435,7 +435,7 @@ PortAudio::open_stream(Ref<PortAudioStream> p_stream, Callable p_audio_callback,
         };
         pa_input_parameter_ptr = &pa_input_parameter;
         Ref<StreamPeerBuffer> input_buffer;
-        input_buffer.instance();
+        input_buffer.instantiate();
         input_buffer->resize(p_stream->get_frames_per_buffer());
         user_data->audio_callback_data->set_output_buffer(input_buffer);
     }
@@ -459,7 +459,7 @@ PortAudio::open_stream(Ref<PortAudioStream> p_stream, Callable p_audio_callback,
         };
         pa_output_parameter_ptr = &pa_output_parameter;
         Ref<StreamPeerBuffer> output_buffer;
-        output_buffer.instance();
+        output_buffer.instantiate();
         output_buffer->resize(p_stream->get_frames_per_buffer());
         user_data->audio_callback_data->set_output_buffer(output_buffer);
     }
@@ -492,7 +492,7 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
     CallbackUserDataGdBinding *user_data = new CallbackUserDataGdBinding();
     user_data->port_audio = this;
     user_data->audio_callback = p_audio_callback;
-    user_data->audio_callback_data.instance();
+    user_data->audio_callback_data.instantiate();
     user_data->audio_callback_data->set_user_data(p_user_data);
 
     PaSampleFormat pa_sample_format = get_sample_format(p_sample_format);
@@ -504,7 +504,7 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
     Ref<PortAudioStreamParameter> input_parameter = p_stream->get_input_stream_parameter();
     if (input_parameter.is_valid() && input_parameter->get_channel_count() > 0) {
         Ref<StreamPeerBuffer> input_buffer;
-        input_buffer.instance();
+        input_buffer.instantiate();
         input_buffer->resize(p_stream->get_frames_per_buffer());
         user_data->audio_callback_data->set_input_buffer(input_buffer);
         user_data->input_sample_size = (int) sample_size;
@@ -515,7 +515,7 @@ PortAudio::PortAudioError PortAudio::open_default_stream(Ref<PortAudioStream> p_
     Ref<PortAudioStreamParameter> output_parameter = p_stream->get_output_stream_parameter();
     if (output_parameter.is_valid() && output_parameter->get_channel_count() > 0) {
         Ref<StreamPeerBuffer> output_buffer;
-        output_buffer.instance();
+        output_buffer.instantiate();
         output_buffer->resize(p_stream->get_frames_per_buffer());
         user_data->audio_callback_data->set_output_buffer(output_buffer);
         user_data->output_sample_size = (int) sample_size;
